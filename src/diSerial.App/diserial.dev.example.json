@@ -1,0 +1,43 @@
+// diSerial developer switches -- copy this file to diserial.dev.json to use it.
+//
+// Scope and rules:
+//   * diserial.dev.json is copied to the output directory for BOTH Debug and Release, and
+//     it ships inside the package. "Everything off when published" is therefore NOT a
+//     side effect of the build configuration: it is enforced by the
+//     CheckDeveloperSwitchesBeforePublish target, which fails dotnet publish outright while
+//     debugMode is still true.
+//   * Missing keys fall back to the built-in defaults (all false); you do not have to write
+//     them all out.
+//   * Comments and trailing commas are supported, so this file is safe to hand-edit.
+//   * While a switch is on, the main window title permanently shows
+//     "DEVELOPER MODE -- SIMULATED DATA".
+//
+// WARNING: This file holds developer switches only. User settings (UI language, port
+//    parameters) are user data and live in %AppData%\diSerial\settings.db -- one row per
+//    parameter, seeded on first launch. The two are never mixed.
+//    (It was settings.json until 2026-08-07; see P2-77.)
+{
+  // Format version of this file. Used to warn when a key is renamed; adding keys does not
+  // require touching it.
+  "schemaVersion": 2,
+
+  // Form selector. true = developer form, which gates replay (see diserial.dev.json).
+  //
+  // NOTE: this switch produces no synthetic port on its own (since 2026-07-30).
+  //    It used to put SIM-A / SIM-B in the port list and enable a "Tools > simulate device
+  //    insertion" menu item; that menu went with the insertion prompt on 2026-07-29, and
+  //    the two ports went with the monitoring stub on 2026-07-30.
+  //    To work without hardware, create a monitoring session, set replay to on, and use the
+  //    two REPLAY-* ports.
+  //
+  // NOTE: it no longer enables Avalonia DevTools either. That capability was removed
+  //    entirely on 2026-08-09, because the package it depended on declares no license at
+  //    all; see docs/02-architecture.md 11.2.3.
+  //
+  // NOTE: this template ships with false. Copying it across as-is changes nothing --
+  //    remember to set it to true.
+  //    How to tell it took effect: the window title gains "DEVELOPER MODE -- SIMULATED
+  //    DATA". If the title does not change, read the log: it says in so many words
+  //    "file found ... but no switch is enabled".
+  "debugMode": false
+}

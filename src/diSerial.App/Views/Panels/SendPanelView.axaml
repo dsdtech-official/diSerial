@@ -1,0 +1,510 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sessions="using:DiSerial.App.ViewModels.Sessions"
+             xmlns:panels="using:DiSerial.App.ViewModels.Panels"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="150"
+             x:Class="DiSerial.App.Views.Panels.SendPanelView"
+             x:DataType="sessions:SessionViewModel">
+
+  <!--
+    发送面板（T-01 / T-02 / T-03a / T-06）。
+
+    安全设计（M-09）：监听会话中默认显示为禁用状态并给出注入警告。
+    diDatatracker 的两个虚拟 COM 口物理上连接到总线两侧，
+    写入会真实注入运行中的工业总线，可能干扰正在生产的设备。
+
+    ⚠️ DataContext is the SESSION, not the send panel (changed 2026-08-02).
+    Every binding therefore goes through SendPanel.X or LogPanel.X.
+
+    Why: the "show sent data" checkbox moved into this panel's first row, and its value
+    is owned by LogPanelViewModel (T-05) while everything else here is owned by
+    SendPanelViewModel. Binding the view one level up reaches both without copying the
+    value into a second place — two copies of one setting is how they drift apart.
+  -->
+
+  <StackPanel>
+
+    <!-- 第一层防护：监听会话中发送区默认禁用，显示警告条 -->
+    <Border Padding="12,8" Background="#33BA7517"
+            IsVisible="{Binding !SendPanel.IsSendEnabled}">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12"
+                   Text="{loc:Translate Send.DisabledWarning}" />
+        <Button Grid.Column="1" Margin="10,0,0,0" Content="{loc:Translate Send.EnableSend}"
+                Command="{Binding SendPanel.RequestEnableSendCommand}" />
+      </Grid>
+    </Border>
+
+    <!-- 第三层防护：监听会话中启用发送后，持续以橙色边框提示「可注入」状态 -->
+    <Border Padding="10,8" IsVisible="{Binding SendPanel.IsSendEnabled}"
+            BorderBrush="#BA7517"
+            BorderThickness="{Binding SendPanel.ShowInjectionWarning, Converter={StaticResource InjectionBorder}}">
+
+      <StackPanel Spacing="6">
+
+        <!-- Row 1 — settings that decide what the bytes are. -->
+        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+          <!--
+            ⚠️ Disabled while a timed send runs (T-06). The payload was frozen at start,
+            so letting these change would put HEX on screen while ASCII bytes keep going
+            out — the display and the wire would stop having one source. Spec 4.14, promise 3.
+          -->
+          <RadioButton GroupName="fmt" VerticalAlignment="Center"
+                       Content="{loc:Translate Send.FormatAscii}"
+                       IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                       IsChecked="{Binding !SendPanel.IsHexMode}" />
+          <RadioButton GroupName="fmt" VerticalAlignment="Center" Margin="0,0,8,0"
+                       Content="{loc:Translate Send.FormatHex}"
+                       IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                       IsChecked="{Binding SendPanel.IsHexMode}" />
+
+          <TextBlock Text="{loc:Translate Send.LineEnding}" VerticalAlignment="Center"
+                     Margin="0,0,6,0" FontSize="12" />
+
+          <!--
+            HEX 模式下禁用（P1-34）。此时 ViewModel 已把取值强制归「无」，
+            所以用户看到的是一个灰掉的「无」——「它现在不起作用」和
+            「它的值是什么」两件事同时说清楚了。
+            只灰不归零的话，下拉里会灰着一个 CRLF，读起来像「它仍会被发出去」。
+          -->
+          <ComboBox MinWidth="90" VerticalAlignment="Center" Margin="0,0,10,0"
+                    IsEnabled="{Binding SendPanel.CanEditLineEnding}"
+                    ItemsSource="{Binding SendPanel.LineEndingChoices}"
+                    SelectedValue="{Binding SendPanel.LineEnding}"
+                    SelectedValueBinding="{Binding Value}"
+                    DisplayMemberBinding="{Binding DisplayName}" />
+
+          <!--
+            T-05 显示 / 隐藏本机发出的行，2026-08-02 从工具栏移到这里。
+            ⚠️ 只有终端会话有这个开关 —— 监听会话里「自己发出去的」是向总线注入（M-09），
+            把它藏起来与那一整套「让注入显眼」的设计相反。规格见 01-spec 4.12。
+
+            Moving it here also splits it from the two column toggles it used to sit beside:
+            this one hides ROWS, those hide COLUMNS, and three identical-looking checkboxes
+            in a row could not say so.
+          -->
+          <CheckBox VerticalAlignment="Center"
+                    IsVisible="{Binding !SendPanel.IsMonitorSession}"
+                    Content="{loc:Translate Toolbar.ShowSent}"
+                    IsChecked="{Binding LogPanel.ShowSentData}" />
+
+          <!--
+            History picker (T-03a). Selecting only fills the input box below — it never sends;
+            see SendPanelViewModel.SelectedHistoryEntry, which always reads back null.
+
+            ⚠️ Moved up from row 2 on 2026-08-02 (user decision) so that row 2 is just the
+            input box and Send, which is what the original requirement asked for ("the input
+            box gets a row of its own", spec 4.14).
+
+            It fits here on measurement, not on hope: at MinWidth 820 in English - the tight
+            case 6.7 identified - row 1 needed ~493px of ~1015, so this ~138px control leaves
+            ~378px spare. That margin matters because this row is a WrapPanel: overflow here
+            does not clip, it silently wraps to a second line and makes the send area taller.
+          -->
+          <!--
+            ⚠️ Disabled during a timed send for the same reason as the controls above: picking
+            an entry now restores its ASCII/HEX mode, and promise 3 freezes the mode along with
+            the payload. The ViewModel guards this too - the view is the convenience, the guard
+            is the promise.
+          -->
+          <!--
+            ⛔ Do NOT add a TextBlock label in front of this box (asked for and declined,
+            2026-08-02). PlaceholderText is not a transient hint here: SelectedHistoryEntry
+            always resets itself to null, so no selection ever replaces it and the placeholder
+            is the control's permanent resting text. A label beside it would put the same word
+            on screen twice, side by side. Spec 4.14, "第 1 行两个控件的措辞".
+          -->
+          <ComboBox MinWidth="110" VerticalAlignment="Center" Margin="4,0,0,0"
+                    IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                    PlaceholderText="{loc:Translate Send.History}"
+                    ItemsSource="{Binding SendPanel.History}"
+                    SelectedItem="{Binding SendPanel.SelectedHistoryEntry}"
+                    SelectionChanged="OnHistorySelectionChanged">
+            <ComboBox.ItemTemplate>
+              <DataTemplate DataType="panels:SendHistoryItemViewModel">
+                <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="220">
+                  <!--
+                    The mode tag is two TextBlocks rather than one bound string because the
+                    label has to come from resources: a single property returning "HEX" would
+                    be user-visible text living in source. ASCII/HEX are deliberately the same
+                    in both languages (P2-23).
+                  -->
+                  <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center"
+                             Width="42" Opacity="0.7"
+                             IsVisible="{Binding IsHexMode}"
+                             Text="{loc:Translate Send.FormatHex}" />
+                  <TextBlock Grid.Column="0" Classes="caption" VerticalAlignment="Center"
+                             Width="42" Opacity="0.7"
+                             IsVisible="{Binding IsAsciiMode}"
+                             Text="{loc:Translate Send.FormatAscii}" />
+
+                  <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding IsEntry}"
+                             Text="{Binding Text}" />
+
+                  <!--
+                    The last row is "clear everything", not an entry (user decision 2026-08-02).
+                    One template with two mutually exclusive layouts rather than two templates:
+                    type-based template resolution is exactly the corner where a ControlTheme
+                    without BasedOn once made dropdown rows invisible while keyboard navigation
+                    kept working and the tests stayed green (00-STATUS 3.3). IsVisible is dull
+                    and checkable on screen.
+
+                    ⚠️ It renders with no mode tag and no delete button, so it does not look
+                    like something you can send.
+                  -->
+                  <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                             FontWeight="SemiBold"
+                             IsVisible="{Binding IsClearAction}"
+                             Text="{loc:Translate Send.HistoryClear}" />
+
+                  <!--
+                    Per-entry delete (user decision 2026-08-02). History is the only thing here
+                    that puts payload on disk unasked, so removing one has to be reachable -
+                    see SendHistoryItemViewModel.
+
+                    ⚠️ The Button must swallow the click. Letting it bubble would select the row
+                    on the way out, so the entry would be loaded into the input box at the very
+                    moment the user asked to be rid of it.
+                  -->
+                  <Button Grid.Column="2" Margin="8,0,0,0" Padding="6,0"
+                          IsVisible="{Binding IsEntry}"
+                          Content="{loc:Translate Send.HistoryRemove}"
+                          ToolTip.Tip="{loc:Translate Send.HistoryRemoveTip}"
+                          Command="{Binding DeleteCommand}" />
+                </Grid>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+
+          <!--
+            Destination picker (P1-33, 2026-08-05). Monitor sessions only: a terminal session has
+            one port, so SendTargets is empty and this collapses.
+
+            ⭐ It shows port names, not "A" / "B". Those labels stopped being user-facing with
+            M-05a, and what the user actually knows is which COM port is wired where. The binding
+            is InlineLabel, so renaming a channel to "PLC" mid-session shows "COM11 · PLC" here
+            too — on the one control that decides where bytes go, a stale label would be the
+            worst place for one.
+
+            ⚠️ Disabled during a timed send like everything else in this row: the payload is
+            frozen at start (spec 4.14, promise 3), and letting the destination move mid-run would
+            put half a burst on one bus and half on the other.
+
+            ⚠️ Width: this row is a WrapPanel, so overflow does not clip — it silently wraps and
+            makes the send area taller. The measurement in the history-picker comment above left
+            ~378px spare at the tight case (MinWidth 820, English); this ~110px control fits
+            inside that. Re-measure with tools\px.ps1 if anything else joins this row.
+          -->
+          <ComboBox MinWidth="110" VerticalAlignment="Center" Margin="10,0,0,0"
+                    IsVisible="{Binding SendPanel.HasSendTargets}"
+                    IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                    ItemsSource="{Binding SendPanel.SendTargets}"
+                    SelectedItem="{Binding SendPanel.SelectedTarget}"
+                    DisplayMemberBinding="{Binding InlineLabel}" />
+        </WrapPanel>
+
+        <!-- Row 2 — input, send, and the timed-send stop. -->
+        <Grid ColumnDefinitions="*,Auto,Auto">
+          <!--
+            ⚠️ Plain TextBox, not the editable ComboBox this used to be (2026-08-02).
+            Input and history were one control; a collection change could wipe what the user
+            had typed (the P0-8 regression). Two controls make that impossible rather than
+            merely fixed — same move as carrying channel identity on the alias (spec 4.13).
+
+            Read-only while a timed send runs: the payload is a snapshot, so an editable box
+            would show text that is not what is going out.
+          -->
+          <!--
+            ⭐ Enter sends (user decision 2026-08-03). The binding is scoped to THIS TextBox
+            rather than made a default button on the window: a window-wide default would fire
+            from anywhere, including a monitor session, where Enter would inject into a live
+            bus. The terminal-only rule itself lives in SendPanelViewModel.SendFromEnter, not
+            here — the view only decides which key reaches it.
+
+            ⚠ Text binding is UpdateSourceTrigger=PropertyChanged on purpose. The default for
+            TextBox.Text is LostFocus, so with Enter-to-send the box never loses focus and the
+            ViewModel would send the PREVIOUS content, or nothing at all on the first line.
+          -->
+          <TextBox Grid.Column="0" VerticalAlignment="Center"
+                   x:Name="InputBox"
+                   Classes="lockable"
+                   PlaceholderText="{loc:Translate Send.Placeholder}"
+                   IsReadOnly="{Binding !SendPanel.CanEditSendContent}"
+                   Text="{Binding SendPanel.Input, UpdateSourceTrigger=PropertyChanged}">
+            <!--
+              Up / Down browse the send history, shell-style (P2-51 A2, user decision
+              2026-08-03). Scoped to this TextBox for the same reason Enter is.
+
+              ⚠ Safe only because this box is single-line: Up and Down have no native meaning
+              here, so nothing is being taken away. Multi-line input is deliberately out of
+              scope for V1.0 (spec section 11) — if it ever arrives, these two bindings
+              collide with caret movement and the whole gesture has to be reconsidered,
+              exactly like Enter does.
+            -->
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding SendPanel.SendFromEnterCommand}" />
+              <KeyBinding Gesture="Up" Command="{Binding SendPanel.HistoryOlderCommand}" />
+              <KeyBinding Gesture="Down" Command="{Binding SendPanel.HistoryNewerCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+
+          <!--
+            Greyed out while a timed send runs (user decision 2026-08-03), matching the
+            ViewModel guard in Send(). The input box beside it is already read-only, so a
+            live Send button was offering to transmit something the user cannot see or edit.
+          -->
+          <Button Grid.Column="1" Margin="6,0,0,0"
+                  Content="{loc:Translate Send.Button}"
+                  IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                  Command="{Binding SendPanel.SendCommand}" />
+
+          <!--
+            ⚠️ Column 2 is deliberately empty. The timed-send STOP button used to live here,
+            outside the collapsible row (P1-55). It moved back in next to Start on 2026-08-06
+            — user decision, reasons and the accepted cost are in the comment at that button.
+            The column stays so the grid shape is unchanged if anything comes back out here.
+          -->
+        </Grid>
+
+        <!--
+          Row 3 — the two collapsible panels, SIDE BY SIDE (user decision 2026-08-07).
+
+          ⛔ THIS CONTAINER IS LOAD-BEARING, not cosmetics. Three rules, each bought with a
+          requirement, and each easy to undo by accident:
+
+            1. ⛔ Each panel's IsVisible lives ON THAT PANEL, never on this container. Hoisting
+               a visibility binding up here would make hiding one panel hide the others — the
+               exact failure V1.1's "View" menu is about.
+            2. ⛔ The gap between panels is a MARGIN on each panel, not a spacer element. An
+               invisible element contributes no margin, so hiding one leaves no orphan gap; a
+               spacer column would leave a floating strip of nothing.
+            3. ⭐ WrapPanel, NOT a Grid with fixed columns. The user asked on 2026-08-07 that a
+               THIRD panel be anticipated. With fixed columns that costs two edits — add a
+               column definition, then set Grid.Column — and the second one is the kind a
+               reviewer's eye slides over. Here a new panel is one more child, nothing else.
+
+          ⭐ WrapPanel also degrades correctly when the panels stop fitting: an entire panel
+          moves to the next line. ⚠️ That is the OPPOSITE of what a WrapPanel does to a row of
+          loose controls, where wrapping splits one logical group in half — the reason the
+          "everything on one line" variant was rejected on 2026-08-07. Wrapping whole panels is
+          fine; wrapping the insides of one is not.
+
+          ✅ MEASURED, not reasoned (2026-08-07): a throwaway third panel was added and the
+          window squeezed to MinWidth 820. It moved to a second line intact — nothing clipped,
+          no group split — and the two panels remaining on the first line stayed the same
+          height as each other. The throwaway panel was then removed.
+
+          ⭐ VerticalAlignment=Stretch on both — this is what makes the two panels EXACTLY THE
+          SAME HEIGHT while both are expanded (user asked for that on 2026-08-07). The grid row
+          takes the taller panel's height and both bodies grow to fill it; the shorter panel's
+          content is centred in its body.
+
+          ⛔ THIS LINE SAID "Top" FOR ONE COMMIT, WITH A CONFIDENT REASON THAT WAS WRONG. It
+          claimed Stretch would stretch a COLLAPSED expander's bare header to the height of the
+          other panel's body, "which reads as a rendering fault". ⚠️ That was reasoned, never
+          measured. Measured on 2026-08-07: a collapsed Expander under Stretch keeps its natural
+          header height and sits at the top of the row — the artifact does not exist. All four
+          expand/collapse combinations were screenshotted before this was changed.
+
+          ⭐ The lesson is not about layout: an assertion about how a control renders is an
+          OBSERVATION, and writing it into a comment does not make it one. This file is read as
+          authority by the next person, so a wrong comment here costs more than no comment.
+
+          ⚠️ Why side by side at all: the user's original requirement said the signals go
+          "beside" (旁) the timed send. They were stacked from 2026-08-06 to 2026-08-07, which
+          was a misreading. Measured at MinWidth 820 in English — the tight case — before
+          committing to it: both fit on one line with room to spare.
+        -->
+        <WrapPanel Orientation="Horizontal">
+
+        <!--
+          Panel 1 — timed send. The header names what is inside so the feature is announced
+          rather than hidden. The row exists as a container rather than as more fixed rows so
+          that later send modes have somewhere to go — ⛔ but WHERE they go is NOT decided;
+          see the note inside this expander before assuming they land here.
+
+          ⛔ EXPANDED BY DEFAULT (user decision 2026-08-07). ⚠️ This REVERSES the 2026-08-02
+          decision, which had changed it from expanded to collapsed to keep the send area two
+          rows tall. Two things retired that reasoning:
+            * side by side, the two collapsed headers cost one row rather than two, so the
+              saving they were bought with is now half of what it was; and
+            * V1.1 will hide whole panels from a View menu — the user's words were "if the
+              user does not need it, they choose not to show it". Hiding therefore belongs to
+              the menu, and folding stops being the way to get a panel off the screen.
+
+          ⚠️ Not persisted across restarts — every launch starts expanded.
+          ⚠️ Monitor sessions do not get it at all: M-09's fifth constraint says the only
+          send source there is one manual click (spec 4.1). ⛔ That binding stays HERE rather
+          than on the Grid — see the note above.
+        -->
+        <Expander Margin="0,0,10,6" VerticalAlignment="Stretch"
+                  IsVisible="{Binding !SendPanel.IsMonitorSession}"
+                  IsExpanded="True"
+                  Header="{loc:Translate Send.TimedSend}">
+          <!--
+            ⚠️ The header used to read "Advanced (timed send)" and this row began with an inline
+            "Timed send" label. Renaming the header to just "Timed send" on 2026-08-07 (user
+            decision) put the same words on screen twice, one directly above the other — so the
+            inline label is gone and the old Send.Advanced key is retired. The header now uses
+            Send.TimedSend, which already carried the right wording in all three languages.
+
+            ⚠️ File send / scripts / auto-reply were meant to land in this panel back when it was
+            called "advanced". With the narrower name they need their own home, or the name has
+            to widen again when they arrive. Not decided; do not assume either.
+          -->
+          <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" Margin="0,4,0,0"
+                     VerticalAlignment="Center">
+            <TextBlock Text="{loc:Translate Send.Interval}" VerticalAlignment="Center"
+                       FontSize="12" Margin="0,0,6,0" />
+            <NumericUpDown Width="130" VerticalAlignment="Center"
+                           Minimum="0" Maximum="3600000" Increment="100"
+                           FormatString="0"
+                           IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                           Value="{Binding SendPanel.IntervalMs}" />
+            <TextBlock Text="{loc:Translate Send.IntervalUnit}" VerticalAlignment="Center"
+                       FontSize="12" Margin="6,0,10,0" />
+
+            <!--
+              ⭐ START and STOP both live here and swap in place (user decision 2026-08-06,
+              reversing P1-55). Two mutually exclusive Buttons rather than one button with a
+              bound label: the labels are already {loc:Translate} in this file, and the two
+              commands are genuinely different (Start validates and refuses; Stop is
+              idempotent and is also called by disconnect / send failure / disposal). One
+              hidden Button takes no space, so on screen this reads as a single button that
+              changes its label — which is what was asked for.
+
+              ⛔ WHAT THIS GIVES UP, on purpose. Until 2026-08-06 Stop sat in row 2, outside
+              this Expander, because of P1-55: collapsing the row while a timed send was
+              running took the only stop control off the screen while the timer kept writing
+              to the port once per interval. That was measured, not reasoned — frames kept
+              arriving after the collapse. It also closed P1-56: the stop button's presence
+              was the ONLY indication that a timed send was running, and that indicator is
+              now inside the Expander too.
+
+              The user weighed both and chose this shape: someone who opened the advanced row
+              did so in order to use timed send and is not expected to fold it away again,
+              and if they do fold it, that is their own action and they know a run is going.
+              ⚠️ Both defects are therefore live again by an explicit, informed decision —
+              full clause in 00-STATUS under P1-55. Do NOT "fix" this back without asking.
+
+              ⚠️ NumericUpDown Minimum is 0, not 20, on purpose. Clamping here would silently
+              turn a typed 5 into 20; the floor is enforced on Start, which refuses and says
+              why (spec 4.14, promise 5).
+            -->
+            <Button Content="{loc:Translate Send.TimedStart}"
+                    IsVisible="{Binding !SendPanel.IsTimedSendRunning}"
+                    Command="{Binding SendPanel.StartTimedSendCommand}" />
+            <Button Content="{loc:Translate Send.TimedStop}"
+                    IsVisible="{Binding SendPanel.IsTimedSendRunning}"
+                    Command="{Binding SendPanel.StopTimedSendFromUiCommand}" />
+          </WrapPanel>
+        </Expander>
+
+        <!--
+          Panel 2 — serial control signals (T-07, spec 4.15). A SECOND, INDEPENDENT panel
+          beside the advanced one, not a section inside it: rendered side by side the two boxes
+          read as two independent groups, and folding these into "advanced (timed send)" would
+          make that header name only half of what it holds. User picked this shape from three
+          variants on the real UI, then chose the side-by-side arrangement from three more.
+
+          ⛔ "Two independent panels" is a requirement, not a description — V1.1 will let the
+          user show or hide each one separately. Merging them later is not a refactor, it is
+          removing a feature.
+
+          ⚠️ Visibility is bound to the panel EXISTING, not to a session-kind flag.
+          MonitorCaptureSession does not implement IControlLineSession, so SessionViewModel finds
+          no capability and leaves SignalPanel null — spec 4.15 promise 2 ("no panel in monitor
+          sessions") is therefore a type fact, not a rule this file has to remember. It is also
+          why there is no `!IsMonitorSession` here like the row above.
+
+          ⛔ The header carries NO status summary, by explicit user decision 2026-08-06: while
+          this is collapsed, nothing on screen reports the three lines. That is a known,
+          accepted cost — full clause in spec 4.15. Do NOT "improve" the header without asking.
+        -->
+        <Expander Margin="0,0,10,6" VerticalAlignment="Stretch"
+                  IsVisible="{Binding SignalPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  IsExpanded="{Binding SignalPanel.IsExpanded}"
+                  Header="{loc:Translate Signal.Panel}">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
+
+            <!-- Outputs. Both start unticked (user decision 2026-08-06) - see spec 4.15 for
+                 what that reverses and the cost the two defaults have together. -->
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="12" Opacity="0.7" Margin="0,0,14,6"
+                       Text="{loc:Translate Signal.Outputs}" />
+            <WrapPanel Grid.Row="0" Grid.Column="1" ItemSpacing="18" LineSpacing="6" Margin="0,0,0,6">
+              <CheckBox Content="{loc:Translate Signal.Dtr}" IsChecked="{Binding SignalPanel.DtrAsserted}" />
+
+              <!--
+                ⚠️ Disabled, not hidden, when the handshake is RTS/CTS. Same shape as the line
+                ending dropdown greying out in HEX mode above: "this does not apply right now"
+                and "here is what it is" are two facts, and hiding the box states only the first.
+                The ViewModel guards the write as well - the view is the courtesy, not the rule.
+              -->
+              <CheckBox Content="{loc:Translate Signal.Rts}"
+                        IsChecked="{Binding SignalPanel.RtsAsserted}"
+                        IsEnabled="{Binding !SignalPanel.IsRtsOwnedByFlowControl}" />
+              <TextBlock VerticalAlignment="Center" FontSize="11" Opacity="0.55"
+                         IsVisible="{Binding SignalPanel.IsRtsOwnedByFlowControl}"
+                         Text="{loc:Translate Signal.RtsOwnedByFlowControl}" />
+            </WrapPanel>
+
+            <!--
+              Inputs. Read-only, polled every 250 ms - see SignalPanelViewModel.PollInterval for
+              why an event subscription is not an option here.
+
+              ⛔ Each indicator is dot + abbreviation + STATE WORD, and the dot changes fill,
+              outline and outline style together. Spec 4.15 promise 5: the three states may not
+              be told apart by colour alone. Dropping the word, or making unknown differ from low
+              only in shade, breaks that promise without breaking anything visible in a test.
+
+              ⛔ There is no RI indicator, and that is not an omission: System.IO.Ports exposes no
+              ring-indicator level, only an edge event, so there is no level to draw.
+            -->
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="12" Opacity="0.7" Margin="0,0,14,0"
+                       Text="{loc:Translate Signal.Inputs}" />
+            <WrapPanel Grid.Row="1" Grid.Column="1" ItemSpacing="18" LineSpacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                         Fill="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                <TextBlock Text="{loc:Translate Signal.Cts}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SignalPanel.CtsText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+              </StackPanel>
+
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                         Fill="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                <TextBlock Text="{loc:Translate Signal.Dsr}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SignalPanel.DsrText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+              </StackPanel>
+
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                         Fill="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                <TextBlock Text="{loc:Translate Signal.Dcd}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding SignalPanel.DcdText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+              </StackPanel>
+            </WrapPanel>
+          </Grid>
+        </Expander>
+
+
+        </WrapPanel>
+
+      </StackPanel>
+    </Border>
+
+  </StackPanel>
+</UserControl>

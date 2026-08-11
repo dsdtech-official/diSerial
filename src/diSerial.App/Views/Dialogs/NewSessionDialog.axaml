@@ -1,0 +1,118 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="620"
+        x:Class="DiSerial.App.Views.Dialogs.NewSessionDialog"
+        x:DataType="dialogs:NewSessionDialogViewModel"
+        Title="{loc:Translate Dialog.NewSession.Title}"
+        Width="640" MinWidth="600" MaxWidth="760"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner">
+
+  <!--
+    ⚠️ Width 必须显式指定，不能只给 MinWidth。
+    SizeToContent="Height" 下宽度不受约束时，TextWrapping="Wrap" 的说明文字
+    不会换行 —— 文字要多宽窗口就撑多宽（实测被撑到 1440px，比主窗口还宽）。
+    给定 Width 后文字才有可换行的边界；MaxWidth 则为德语等较长语种留出余量。
+  -->
+
+  <!--
+    Two steps (user decision 2026-08-03): pick the session type, then configure it.
+
+    ⭐ This file names no session type. The cards come from SessionTypes and step 2 is a bare
+    ContentControl resolved by ViewLocator from whichever config ViewModel is current, so
+    ADDING A SESSION TYPE MUST NOT REQUIRE EDITING THIS FILE.
+    NewSessionDialogDecouplingTests fails if that stops being true.
+
+    ⚠️ Do not write two consecutive hyphens anywhere in these comments — Avalonia's parser
+    tolerates it but the file stops being valid XML, and three guards parse it as XML
+    (03-conventions 5.0).
+  -->
+
+  <Grid Margin="20">
+    <StackPanel Spacing="16">
+
+      <!-- ==================== Step 1: choose a type ==================== -->
+      <StackPanel Spacing="16" IsVisible="{Binding IsChoosingType}">
+
+        <TextBlock Text="{loc:Translate Dialog.NewSession.SelectType}" FontSize="15" />
+
+        <!--
+          Card look and selection behaviour live in App.axaml, because the SAME cards are on the
+          main window's empty state since 2026-08-03. Keeping a second copy here would drift,
+          and the two are one click apart on screen.
+        -->
+        <ListBox Classes="sessionTypes"
+                 ItemsSource="{Binding SessionTypes}"
+                 SelectedItem="{Binding SelectedType}"
+                 ItemTemplate="{StaticResource SessionTypeCard}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="2" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+        </ListBox>
+
+        <!--
+          IsCancel means Escape (P2-83, 2026-08-08). It is the symmetric half of the IsDefault
+          below, which is how Enter already works here, so keyboard cancel costs no code-behind.
+          It also goes through CancelCommand rather than a bare Close(), and that matters: the
+          view model nulls its Result there, and Result is what the caller reads to tell cancel
+          from confirm.
+
+          ⚠️ BOTH steps carry it, and that is deliberate: the two step panels are both in the
+          tree at all times, toggled by IsVisible, so there is no single button that is always
+          the reachable one.
+        -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Content="{loc:Translate Common.Cancel}" IsCancel="True"
+                  Command="{Binding CancelCommand}" />
+          <Button Content="{loc:Translate Common.Next}" IsDefault="True"
+                  Command="{Binding NextCommand}" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- ==================== Step 2: configure that type ==================== -->
+      <StackPanel Spacing="16" IsVisible="{Binding IsConfiguring}">
+
+        <!-- Says which type is being configured, so step 2 is readable on its own. -->
+        <TextBlock Text="{Binding SelectedType.Title}" FontSize="15" />
+
+        <!--
+          The whole per type surface. ViewLocator maps the config ViewModel to its View by
+          name (TerminalConfigViewModel to TerminalConfigView), which is the same convention
+          the session views have used since the start.
+        -->
+        <ContentControl Content="{Binding CurrentConfig}" />
+
+        <!--
+          打不开端口时的提示（01-spec 4.7）。
+          ⚠️ 端口是在本对话框里打开的，失败时**留在第二步** ——
+          选择项与参数全都还在，用户改个端口直接重试。
+          所以这条提示必须在这里，而不是顶部提示条（那条服务「已有会话出了问题」）。
+          红色系与顶部会话错误提示条一致，用户一眼认出是同一类事。
+        -->
+        <Border Padding="12,8" Background="#33D13438" IsVisible="{Binding HasOpenError}">
+          <TextBlock Text="{Binding OpenError}" TextWrapping="Wrap" FontSize="12" />
+        </Border>
+
+        <!--
+          ⛔ There is deliberately NO "Back" (user decision 2026-08-03). Cancel closes the
+          window, and each entry point already owns the type choice: the empty state has the
+          cards on screen, and the File menu starts on step 1. Back was a third way to reach a
+          choice that is never more than one Cancel away.
+        -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Content="{loc:Translate Common.Cancel}" IsCancel="True"
+                  Command="{Binding CancelCommand}" />
+          <Button Content="{loc:Translate Toolbar.Connect}" IsDefault="True"
+                  Command="{Binding ConfirmCommand}" />
+        </StackPanel>
+      </StackPanel>
+
+    </StackPanel>
+  </Grid>
+</Window>

@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ============ Common ============ -->
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+
+  <!-- ============ Application ============ -->
+  <data name="App.Name" xml:space="preserve">
+    <value>diSerial</value>
+    <comment>Product name. Do not translate.</comment>
+  </data>
+  <data name="App.TitleWithSession" xml:space="preserve">
+    <value>diSerial — {0}</value>
+    <comment>Window title. {0} = active session title.</comment>
+  </data>
+  <data name="App.TitleDeveloperMode" xml:space="preserve">
+    <value>{0}  ⚠ DEVELOPER MODE — SIMULATED DATA</value>
+    <comment>Window title suffix shown when any developer switch is on. {0} = the normal title. Keep it visually loud: it warns that displayed traffic may be synthetic rather than captured from a real bus.</comment>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>Ready — no session open</value>
+    <comment>Status bar text when no session exists.</comment>
+  </data>
+
+  <!-- ============ Menu ============
+       IMPORTANT FOR TRANSLATORS: the underscore marks the keyboard mnemonic.
+       Keep exactly one underscore per menu entry, and make sure mnemonics do
+       not collide within the same menu level. -->
+  <data name="Menu.File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Menu.File.NewSession" xml:space="preserve">
+    <value>New Session...</value>
+  </data>
+  <data name="Menu.File.CloseSession" xml:space="preserve">
+    <value>Close Session</value>
+  </data>
+  <data name="Menu.File.Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Menu.Session" xml:space="preserve">
+    <value>Session</value>
+  </data>
+  <data name="Menu.Session.Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Menu.Session.Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="Menu.Session.Pause" xml:space="preserve">
+    <value>Pause Receiving</value>
+  </data>
+  <data name="Menu.Session.Resume" xml:space="preserve">
+    <value>Resume Receiving</value>
+    <comment>Session menu label shown while receiving is paused; it replaces Menu.Session.Pause on the same item. Both run the same command, so the label must say which way the next click goes -- P2-99. Keep it the same register as Menu.Session.Pause: menus carry the fuller wording, the toolbar pair (Toolbar.Pause / Toolbar.Resume) is short.</comment>
+  </data>
+  <data name="Menu.Session.Clear" xml:space="preserve">
+    <value>Clear Display</value>
+  </data>
+  <data name="Menu.Session.Record" xml:space="preserve">
+    <value>Start / Stop Recording</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>Edit</value>
+    <comment>⚠️ NOT ON SCREEN IN V1.0. The Edit and View menus were removed from MainWindow.axaml on 2026-08-06 (user decision, P2-8): every entry they had was greyed out, so two of seven top level menus opened onto nothing clickable. These six keys are kept, and kept translated, because the menus return once they have something to switch (01-spec section 9 marks both [TBD]). Translate them as normal menu labels; do NOT assume they are dead text. This note lives only here, on the neutral file, per 03-conventions 2.0.</comment>
+  </data>
+  <data name="Menu.Edit.Find" xml:space="preserve">
+    <value>Find...</value>
+  </data>
+  <data name="Menu.Edit.Filter" xml:space="preserve">
+    <value>Filter...</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>View</value>
+    <comment>⚠️ NOT ON SCREEN IN V1.0 - see the note on Menu.Edit.</comment>
+  </data>
+  <data name="Menu.View.MergedTimeline" xml:space="preserve">
+    <value>Merged Timeline</value>
+  </data>
+  <data name="Menu.View.Split" xml:space="preserve">
+    <value>Split View</value>
+  </data>
+  <data name="Menu.Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="Menu.Tools.Export" xml:space="preserve">
+    <value>Export Display Content...</value>
+  </data>
+  <data name="Menu.Language" xml:space="preserve">
+    <value>Language ({0})</value>
+    <comment>Language menu title. {0} = name of the current language, written in that language itself (e.g. "English", "简体中文"). Showing it here lets a user who switched into a language they cannot read find their way back. Each locale chooses its own punctuation: languages whose mnemonic already uses parentheses (Chinese, Japanese) should avoid a second pair.</comment>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="Menu.Help.About" xml:space="preserve">
+    <value>About diSerial</value>
+  </data>
+
+  <!-- ============ Toolbar ============ -->
+  <data name="Toolbar.Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Toolbar.Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="Toolbar.StartMonitoring" xml:space="preserve">
+    <value>Start Monitoring</value>
+  </data>
+  <data name="Toolbar.Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Toolbar.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Toolbar.Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Toolbar.Resume" xml:space="preserve">
+    <value>Resume</value>
+    <comment>Toolbar button label while the display is paused (P1-40). The button toggles between this and Toolbar.Pause so that "click it again to resume" is obvious.</comment>
+  </data>
+  <data name="Toolbar.Record" xml:space="preserve">
+    <value>Record</value>
+  </data>
+  <data name="Toolbar.StopRecord" xml:space="preserve">
+    <value>Stop recording</value>
+    <comment>P2-54. The button must say which way it goes, like Pause/Resume: a constant label makes "recording" and "not recording" look identical.</comment>
+  </data>
+  <data name="Toolbar.Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Toolbar.Display" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Toolbar.Timestamp" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+
+  <!-- ============ Export dialog (C-09 / M-08) ============ -->
+  <data name="Dialog.Export.Title" xml:space="preserve">
+    <value>Export</value>
+    <comment>Title of the export options dialog. It opens both from the Export button and automatically after a recording stops.</comment>
+  </data>
+  <data name="Dialog.Export.Format" xml:space="preserve">
+    <value>File type</value>
+    <comment>Deliberately "file type", not "format": .tsv and .txt have identical contents (tab separated, one frame per line) and differ only in extension. Calling it "format" would suggest the data itself changes.</comment>
+  </data>
+  <data name="Dialog.Export.SaveTo" xml:space="preserve">
+    <value>Save to</value>
+  </data>
+  <data name="Dialog.Export.Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="Dialog.Export.Confirm" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Enum.ExportFormat.Tsv" xml:space="preserve">
+    <value>Tab separated (.tsv)</value>
+  </data>
+  <data name="Enum.ExportFormat.Csv" xml:space="preserve">
+    <value>Comma separated (.csv)</value>
+    <comment>Real comma separated content, RFC 4180 quoted -- NOT the tab separated content under a .csv name that the old note here warned about. Excel&apos;s list separator follows the system region (semicolon in de/fr/es/it/pt), so double-click does not split columns there; that cost was accepted on 2026-08-11. See 01-spec 6.4.</comment>
+  </data>
+
+  <!-- ============ Log panel columns ============ -->
+  <data name="Toolbar.ShowChannel" xml:space="preserve">
+    <value>Channel</value>
+    <comment>Toolbar checkbox that shows/hides the channel column. Deliberately the same word as Log.Column.Channel so the link between the checkbox and the column it controls is obvious. In a terminal session that column carries the direction (← RX / → TX); in a monitor session it carries channel + direction (A →).</comment>
+  </data>
+  <data name="Toolbar.ShowDelta" xml:space="preserve">
+    <value>Δms</value>
+    <comment>Toolbar checkbox that shows/hides the delta column. Same word as Log.Column.Delta — see Toolbar.ShowChannel.</comment>
+  </data>
+  <data name="Toolbar.DisplaySettings" xml:space="preserve">
+    <value>Display settings</value>
+    <comment>Terminal toolbar button opening the flyout that holds display format, timestamp mode, and the two column toggles. Collecting them behind one button is what keeps the toolbar inside the 820 px minimum window width (P1-43).</comment>
+  </data>
+  <data name="Toolbar.ShowSent" xml:space="preserve">
+    <value>Sent</value>
+    <comment>Send-area checkbox (terminal session only) that shows/hides locally sent lines — T-05, spec 4.12. It hides ROWS, not a column, so avoid wording that suggests a column. ⚠️ Stays short while zh-Hans spells it out as 显示发送数据 (user decision 2026-08-02). The asymmetry is deliberate, not an oversight: Chinese renders the Send button one row below as 发送, so a bare 发送 here would be one word appearing twice in one panel with two different meanings; "Sent" and "Send" already read as different words. ⚠️ English is also the tight case for this row's width — it is a WrapPanel, so overflow does not clip, it silently wraps and makes the send area taller (spec 4.14). Lengthening THIS value is what would spend that margin. ⚠️ The old note said "keep it short: it sits next to Channel and Δms" — expired 2026-08-02, when those two moved into the display-settings flyout (spec 6.7 甲) and this one moved into the send area.</comment>
+  </data>
+  <data name="Log.Column.Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="Log.Column.Delta" xml:space="preserve">
+    <value>Δms</value>
+    <comment>Delta in milliseconds since the previous frame. Keep short — the column is narrow.</comment>
+  </data>
+  <data name="Log.Column.Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="Log.Column.Data" xml:space="preserve">
+    <value>Data</value>
+  </data>
+
+  <!-- ============ Channel panel (monitor session) ============ -->
+  <data name="Channel.Header" xml:space="preserve">
+    <value>Channels</value>
+  </data>
+  <data name="Channel.AliasPlaceholder" xml:space="preserve">
+    <value>Alias for {0}</value>
+    <comment>{0} = port name, e.g. "Alias for COM6". Replaced Channel.AliasAPlaceholder / AliasBPlaceholder ("Channel A alias") on 2026-08-01 — with Swap A/B removed the A/B letters are gone from the UI entirely. See 01-spec 4.13.</comment>
+  </data>
+  <data name="Channel.BytesReceived" xml:space="preserve">
+    <value>Bytes received</value>
+  </data>
+  <data name="Channel.TimestampNote" xml:space="preserve">
+    <value>Timestamps are taken in software and are affected by USB polling and OS scheduling. They are not hardware microsecond timestamps.</value>
+  </data>
+  <data name="Channel.PortWithAlias" xml:space="preserve">
+    <value>{0} "{1}"</value>
+    <comment>{0} = port name, {1} = user-supplied alias. Used in the monitor status bar ONLY when the user has renamed the channel; before that the port name is shown on its own, because the alias defaults to the port name and "COM6 \"COM6\"" would just repeat itself.</comment>
+  </data>
+
+  <!-- ============ Frame rows: the channel/direction column (P2-69) ============
+
+       ⚠️ TX and RX are the universal serial abbreviations and are currently left as-is in
+       every language, INCLUDING zh-Hans. Being here rather than inlined in the code is still
+       the point: it makes translating them later a data change, and it keeps the rule
+       "text on screen can switch language" free of exceptions.
+
+       ⚠️ The arrow is part of the value, and its direction carries meaning: observed traffic
+       comes FROM a channel, injected traffic goes TO one. A translation may reorder the words
+       but should keep an arrow pointing the same way.
+  -->
+  <data name="Frame.Direction.Rx" xml:space="preserve">
+    <value>← RX</value>
+    <comment>Terminal session, received from the peer. No channels exist there, so this is a bare direction marker.</comment>
+  </data>
+  <data name="Frame.Direction.Tx" xml:space="preserve">
+    <value>→ TX</value>
+    <comment>Terminal session, sent by us (local echo, T-02).</comment>
+  </data>
+  <data name="Frame.Channel.Observed" xml:space="preserve">
+    <value>{0} →</value>
+    <comment>Monitor session, observed on the bus. {0} = channel label, either "COM6" or "COM6 · PLC".</comment>
+  </data>
+  <data name="Frame.Channel.Injected" xml:space="preserve">
+    <value>TX → {0}</value>
+    <comment>Monitor session, injected by us (M-09). {0} = channel label. ⚠️ The TX marker leads deliberately (P1-32): an injected frame has to be recognisable at a glance, and the prefix breaking the column alignment is the point, not a flaw. Keep the marker first.</comment>
+  </data>
+
+  <!-- ============ Send panel ============ -->
+  <data name="Send.DisabledWarning" xml:space="preserve">
+    <value>Sending is disabled in monitor mode. Writing to a channel injects real data onto the live bus.</value>
+  </data>
+  <data name="Send.EnableSend" xml:space="preserve">
+    <value>Enable Sending</value>
+  </data>
+  <data name="Send.LineEnding" xml:space="preserve">
+    <value>Line ending</value>
+  </data>
+  <data name="Send.Placeholder" xml:space="preserve">
+    <value>Enter data to send</value>
+  </data>
+  <data name="Send.Button" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Send.FormatAscii" xml:space="preserve">
+    <value>ASCII</value>
+    <comment>Send-area radio button. Was a hardcoded literal in SendPanelView.axaml until 2026-08-02 (P2-23) — neither guard could see it there. Do not translate: protocol abbreviation, 03-conventions 2.7.</comment>
+  </data>
+  <data name="Send.FormatHex" xml:space="preserve">
+    <value>HEX</value>
+    <comment>See Send.FormatAscii. Must read identically to Enum.DisplayFormat.Hex — they name the same thing one screen apart.</comment>
+  </data>
+  <data name="Send.History" xml:space="preserve">
+    <value>History</value>
+    <comment>PlaceholderText of the send-history dropdown (T-03a). Picking an entry only fills the input box and restores its ASCII/HEX mode; it does not send. ⚠️ This is the dropdown's permanent resting text, not a transient hint: SelectedHistoryEntry always resets itself to null, so a selection never replaces it. It therefore doubles as the control's label, which is why no separate label sits beside it. ⚠️ zh-Hans is the more specific 历史指令; English stays "History" (user decision 2026-08-02) because English is the tight case for this row's width — see Toolbar.ShowSent.</comment>
+  </data>
+  <data name="Send.HistoryRemove" xml:space="preserve">
+    <value>×</value>
+    <comment>Glyph on the per-entry delete button in the send-history dropdown. NOT translated — same rule as ASCII/HEX (P2-23). U+00D7, deliberately: it is inside GB2312, so Chinese fonts render it instead of a box (03-conventions 9.4).</comment>
+  </data>
+  <data name="Send.HistoryClear" xml:space="preserve">
+    <value>Clear all history</value>
+    <comment>Last row of the send-history dropdown. It is an action, not an entry.</comment>
+  </data>
+  <data name="Session.CloseWhileRecording.Title" xml:space="preserve">
+    <value>Recording is running</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Message" xml:space="preserve">
+    <value>Closing this session stops the recording. What was recorded stays in the database, but no export file is written — for one, cancel and press Stop recording first.</value>
+    <comment>MUST stay true to the code: closing disposes the recorder, and only the toolbar's Stop recording runs the export. An earlier draft of this string promised an export file that closing never writes. Do not "simplify" the second half away — it names the one action that gets the data out, and V1.0 has no screen for browsing past batches.</comment>
+  </data>
+  <data name="Session.CloseWhileRecording.Confirm" xml:space="preserve">
+    <value>Stop and close</value>
+    <comment>Names both effects. "OK" would hide the fact that the recording ends here.</comment>
+  </data>
+  <data name="Send.HistoryClear.Title" xml:space="preserve">
+    <value>Clear send history</value>
+  </data>
+  <data name="Send.HistoryClear.Message" xml:space="preserve">
+    <value>This deletes all {0} saved commands, including those not shown in the list. It cannot be undone.</value>
+    <comment>{0} = the number of entries actually stored, NOT the dozen visible in the dropdown. Saying "including those not shown" is the point: there is no history management screen, so this prompt is the only place the user learns how much is kept.</comment>
+  </data>
+  <data name="Send.HistoryClear.Confirm" xml:space="preserve">
+    <value>Delete all</value>
+  </data>
+  <data name="Send.HistoryClear.Failed" xml:space="preserve">
+    <value>The history could not be deleted. It is still stored on disk.</value>
+    <comment>Must say the data is still there. Reporting a clear that did not happen is the one failure this feature cannot afford.</comment>
+  </data>
+  <data name="Send.HistoryRemoveTip" xml:space="preserve">
+    <value>Remove this entry from the saved history</value>
+    <comment>Tooltip of the per-entry delete button. Says "saved" on purpose: history now persists to disk, so this is a deletion, not just hiding a row.</comment>
+  </data>
+  <data name="Signal.Dtr" xml:space="preserve">
+    <value>DTR</value>
+    <comment>Control-line abbreviation (T-07). IDENTICAL in every language on purpose - DTR/RTS/CTS/DSR/DCD are the international RS-232 names, same rule as ASCII/HEX (P2-23) and the RX/TX tags (P2-69). It lives in resources rather than in the .axaml because user-visible text in markup is refused by XamlTextConventionTests - and that guardrail is right even when the string never changes: the day one of these does need a local form, there has to be a place to put it.</comment>
+  </data>
+  <data name="Signal.Rts" xml:space="preserve">
+    <value>RTS</value>
+  </data>
+  <data name="Signal.Cts" xml:space="preserve">
+    <value>CTS</value>
+  </data>
+  <data name="Signal.Dsr" xml:space="preserve">
+    <value>DSR</value>
+  </data>
+  <data name="Signal.Dcd" xml:space="preserve">
+    <value>DCD</value>
+  </data>
+  <data name="Signal.Panel" xml:space="preserve">
+    <value>Serial signals</value>
+    <comment>Header of the collapsible control-signal row in the send area (T-07, spec 4.15). Sits beside the advanced row, collapsed by default. NOTE: the header deliberately carries NO status summary - user decision 2026-08-06, explicit clause in spec 4.15. Do not add one without asking.</comment>
+  </data>
+  <data name="Signal.Outputs" xml:space="preserve">
+    <value>Output</value>
+    <comment>Row label for the two lines diSerial can drive (DTR, RTS). Shortened from "Output signals" on 2026-08-07 (user decision): the panel header already says "Serial signals", so the word was on screen twice, and engineers read the bare direction fine. The abbreviations themselves are NOT translated - same rule as RTS / CTS and XON / XOFF elsewhere in this file.</comment>
+  </data>
+  <data name="Signal.Inputs" xml:space="preserve">
+    <value>Input</value>
+    <comment>Row label for the three lines diSerial can only observe (CTS, DSR, DCD). Shortened from "Input signals" on 2026-08-07, same reason as the output label. RI is absent on purpose: SerialPort exposes no ring-indicator level, so there is nothing to show.</comment>
+  </data>
+  <data name="Signal.StateHigh" xml:space="preserve">
+    <value>on</value>
+    <comment>State word beside an input indicator whose line is asserted. MUST stay a word, not only a colour: spec 4.15 promise 5 forbids conveying the three states by colour alone.</comment>
+  </data>
+  <data name="Signal.StateLow" xml:space="preserve">
+    <value>off</value>
+    <comment>State word beside an input indicator whose line is not asserted.</comment>
+  </data>
+  <data name="Signal.StateUnknown" xml:space="preserve">
+    <value>unknown</value>
+    <comment>State word for a line whose level was NOT observed - port not open, replay session, or the driver refused the read. It is NOT the same as off, and rendering it as off would state something never measured.</comment>
+  </data>
+  <data name="Signal.RtsOwnedByFlowControl" xml:space="preserve">
+    <value>(owned by flow control)</value>
+    <comment>Shown beside a disabled RTS checkbox when the handshake is RTS/CTS and the driver owns the line. Same shape as the line-ending dropdown greying out in HEX mode: say that it does not apply AND what it is.</comment>
+  </data>
+  <data name="Send.TimedSend" xml:space="preserve">
+    <value>Timed send</value>
+    <comment>T-06. Doubles as the HEADER of the timed-send panel since 2026-08-07. It used to be an inline label INSIDE a panel headed "Advanced (timed send)" — once the header was renamed to just this, the same words appeared twice, one above the other, so the inline label went and the old Send.Advanced key was retired. Terminal sessions only, see spec 4.1 fifth constraint.</comment>
+  </data>
+  <data name="Send.Interval" xml:space="preserve">
+    <value>Every</value>
+    <comment>Precedes the interval box: "Every [1000] ms". Keep it short.</comment>
+  </data>
+  <data name="Send.IntervalUnit" xml:space="preserve">
+    <value>ms</value>
+    <comment>Unit after the interval box. Do not translate.</comment>
+  </data>
+  <data name="Send.TimedStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Send.TimedStop" xml:space="preserve">
+    <value>Stop</value>
+    <comment>Replaces Start while a timed send runs. This button is the only way to stop it, so it must never read "Start" at that moment — same reasoning as Toolbar.Pause/Resume (P1-40).</comment>
+  </data>
+
+  <!-- ============ New session dialog ============ -->
+  <data name="Dialog.NewSession.Title" xml:space="preserve">
+    <value>New Session</value>
+  </data>
+  <data name="Dialog.NewSession.SelectType" xml:space="preserve">
+    <value>Select session type</value>
+  </data>
+  <data name="Dialog.NewSession.Terminal" xml:space="preserve">
+    <value>Serial Terminal</value>
+  </data>
+  <data name="Dialog.NewSession.TerminalDesc" xml:space="preserve">
+    <value>Open one serial port to send and receive data.</value>
+  </data>
+  <data name="Dialog.NewSession.Monitor" xml:space="preserve">
+    <value>Serial Monitor</value>
+  </data>
+  <data name="Dialog.NewSession.MonitorDesc" xml:space="preserve">
+    <value>Open two serial ports to observe traffic in both directions without disturbing the link.</value>
+    <comment>⚠️ This is now the first description of monitoring a user reads: since 2026-08-03 the cards are on the empty state too, and the paragraph that used to sit there (Empty.Description) was removed because it explained the same thing in prose — two texts that had to be kept from contradicting each other by hand. DO NOT say diSerial "will offer to" or "will prompt to" create the session: the insertion prompt (former M-02) was removed on 2026-07-29, so plugging a device in does nothing on its own. The user starts from the New Session button. That wrong promise shipped in both languages and survived until 1a caught it by eye (P1-27); ResourceWordingTests.BannedPhrases now fails the build on it. Name no specific hardware here — 01-spec Principle 2 allows the product name only in "About".</comment>
+  </data>
+  <data name="Dialog.NewSession.MonitorRequires" xml:space="preserve">
+    <value>Requires any two serial ports</value>
+    <comment>Monitoring works with any two ports — a dual-channel adapter, two separate USB cables, or a diDatatracker. Keep this wording generic.</comment>
+  </data>
+  <data name="Dialog.NewSession.Port" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelA" xml:space="preserve">
+    <value>Channel A</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelB" xml:space="preserve">
+    <value>Channel B</value>
+  </data>
+
+  <!-- ============ Serial parameters ============ -->
+  <data name="Serial.BaudRate" xml:space="preserve">
+    <value>Baud rate</value>
+  </data>
+  <data name="Serial.DataBits" xml:space="preserve">
+    <value>Data bits</value>
+  </data>
+  <data name="Serial.Parity" xml:space="preserve">
+    <value>Parity</value>
+  </data>
+  <data name="Serial.StopBits" xml:space="preserve">
+    <value>Stop bits</value>
+  </data>
+  <data name="Serial.FlowControl" xml:space="preserve">
+    <value>Flow control</value>
+  </data>
+
+  <!-- ============ Session titles and status ============ -->
+  <data name="Session.Terminal.Title" xml:space="preserve">
+    <value>{0} terminal</value>
+    <comment>{0} = port name, e.g. "COM7".</comment>
+  </data>
+  <data name="Session.Monitor.Title" xml:space="preserve">
+    <value>{0} ↔ {1} monitor</value>
+    <comment>{0} = channel A alias, {1} = channel B alias.</comment>
+  </data>
+  <data name="Session.Terminal.Status" xml:space="preserve">
+    <value>{0} · {1} · {2} · frames {3} · {4} B</value>
+    <comment>{0}=port, {1}=serial settings, {2}=connection state, {3}=frame count, {4}=byte count.</comment>
+  </data>
+  <data name="Session.Monitor.Status" xml:space="preserve">
+    <value>{0}↓{1} · {2}↓{3} · {4} · {5} · frames {6}</value>
+    <comment>{0}/{2} are the two channel descriptors, pre-composed via Channel.PortWithAlias (port name alone until the user renames it). {1}/{3} are their received byte counts, placed right after the channel they belong to. {4}=serial settings, {5}=state, {6}=frame count. NOTE: the A:/B:/A-down/B-down prefixes were dropped 2026-08-01 — with Swap A/B removed those letters point at nothing. See 01-spec 4.13.</comment>
+  </data>
+
+  <!-- ============ Connection states ============ -->
+  <data name="State.Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="State.Connecting" xml:space="preserve">
+    <value>Connecting</value>
+  </data>
+  <data name="State.Faulted" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="State.Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="State.Monitoring" xml:space="preserve">
+    <value>Monitoring</value>
+  </data>
+  <data name="State.DisplayPaused" xml:space="preserve">
+    <value>{0} · display paused</value>
+    <comment>{0} = the connection state (Connected / Monitoring / ...). Shown in the status bar while the display is paused (P1-40). NOTE: this APPENDS to the live state instead of replacing it — capture, counters and recording all keep running while paused (spec 4.2a), so replacing "Monitoring" with "Paused" would state the opposite of what is happening.</comment>
+  </data>
+  <data name="State.Recording" xml:space="preserve">
+    <value>{0} · Recording</value>
+    <comment>P2-54. APPENDED to the state, never a replacement -- capture and counters carry on. Same rule as State.DisplayPaused.</comment>
+  </data>
+  <data name="State.NotStarted" xml:space="preserve">
+    <value>Not started</value>
+  </data>
+
+  <!-- ============ Platform support ============ -->
+  <data name="Platform.MacOsNotImplemented" xml:space="preserve">
+    <value>macOS serial support is under development (planned for V1.1).</value>
+  </data>
+  <data name="Platform.Unknown" xml:space="preserve">
+    <value>Serial ports are not supported on this platform.</value>
+  </data>
+
+  <!-- ============ Bus injection warning (safety) ============ -->
+  <data name="Injection.Title" xml:space="preserve">
+    <value>Enable sending?</value>
+  </data>
+  <data name="Injection.Message" xml:space="preserve">
+    <value>Sending to a monitored channel injects real data onto the bus and may disturb equipment that is currently running.
+
+Continue only if you are sure the target bus can safely accept injected traffic.</value>
+    <comment>Safety warning. Keep the tone plain and factual — this protects live industrial equipment.</comment>
+  </data>
+  <data name="Injection.Confirm" xml:space="preserve">
+    <value>I understand, enable sending</value>
+  </data>
+
+  <!-- ============ About ============ -->
+  <data name="About.Title" xml:space="preserve">
+    <value>About diSerial</value>
+  </data>
+  <data name="About.Message" xml:space="preserve">
+    <value>diSerial — free and open-source serial tool
+
+V{0}. Two kinds of session: a serial terminal for one device, and dual-port passive monitoring for two. Written as the official companion software for the DSD TECH diDatatracker, and not tied to it.
+
+DongGuan DESHIDE TECHNOLOGY CO.,LTD
+www.deshide.com    dsd_tech@outlook.com
+
+"DSD TECH" is a registered trademark of DongGuan DESHIDE TECHNOLOGY CO.,LTD.
+The full notice is in the NOTICE file next to the executable.</value>
+    <comment>{0} = product version, filled by code from the assembly (AppInfo.DisplayVersion). ⛔ Do NOT type the number back into this sentence: the single source is Directory.Build.props, and a version written here exists once per language and goes stale in each independently — that is exactly the defect P1-16 closed. This is also the ONE resource allowed to contain the product name diDatatracker (01-spec principle 2), which ResourceWordingTests enforces by key.</comment>
+  </data>
+
+  <!-- ============ Protocol decoder summaries ============
+       Keys are declared in DiSerial.Core.Models.DecoderKeys so that decoders,
+       which live in the infrastructure layer, can reference them without
+       depending on localization. Decoders supply the key and arguments only —
+       never a finished string. -->
+  <data name="Decoder.Modbus.IllegalDataAddress" xml:space="preserve">
+    <value>Exception 02: illegal data address</value>
+    <comment>Modbus RTU exception code 02. Keep the numeric code — engineers look it up by number.</comment>
+  </data>
+
+  <!-- ============ Errors ============ -->
+  <data name="Error.UnsupportedSessionKind" xml:space="preserve">
+    <value>Unsupported session kind: {0}</value>
+    <comment>{0} = the session kind that could not be opened, as its enum name (e.g. Terminal,
+    Monitor) -- NOT a translated word, so do not add quotes or particles that assume one. This
+    is a should-never-happen guard for a session type the factory does not know; a user only
+    ever sees it if a build ships an incomplete factory.</comment>
+  </data>
+
+  <!-- ============ Recoverable error notice (P0-2 / spec 4.7) ============
+       Shown in the top non-modal banner. Only the latest one is kept.
+       The raw framework exception text is NOT shown here - it goes to the log. -->
+  <data name="ErrorNotice.Title" xml:space="preserve">
+    <value>Something went wrong</value>
+  </data>
+  <data name="ErrorNotice.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="ErrorKind.Unknown" xml:space="preserve">
+    <value>The operation failed. See the log file for details.</value>
+  </data>
+  <data name="ErrorKind.PortNotFound" xml:space="preserve">
+    <value>That serial port does not exist. It may have been unplugged, or the name may be wrong.</value>
+  </data>
+  <data name="ErrorKind.AccessDenied" xml:space="preserve">
+    <value>The port is in use by another program, or you do not have permission to open it.</value>
+  </data>
+  <data name="ErrorKind.DeviceRemoved" xml:space="preserve">
+    <value>The device was disconnected. Reconnect it and connect again.</value>
+  </data>
+  <data name="ErrorKind.Timeout" xml:space="preserve">
+    <value>The port did not respond in time.</value>
+  </data>
+  <data name="ErrorKind.NotConnected" xml:space="preserve">
+    <value>Connect the port before sending.</value>
+  </data>
+  <data name="ErrorKind.InvalidInput" xml:space="preserve">
+    <value>The text to send could not be read. In HEX mode use pairs of 0-9 / A-F, for example: 01 03 00 00.</value>
+  </data>
+  <data name="ErrorKind.IntervalTooSmall" xml:space="preserve">
+    <value>The timed-send interval is too short. The shortest allowed is 20 ms; the interval was left unchanged.</value>
+    <comment>T-06. Must say the value was NOT changed: the rule is refuse, never clamp (spec 4.14, promise 5), and the box still holds what the user typed.</comment>
+  </data>
+  <data name="ErrorKind.NothingToSend" xml:space="preserve">
+    <value>There is nothing to send. Type the content to repeat, or pick an earlier one from the history.</value>
+    <comment>P2-50 (2). Must name a way forward: this is now the end of a normal workflow (a successful send empties the box), not a corner case. Do not say just "empty".</comment>
+  </data>
+  <data name="ErrorKind.LineError" xml:space="preserve">
+    <value>The serial line reported an error (parity, framing or overrun). The received data may be wrong -- check that the baud rate, parity and stop bits match the device.</value>
+    <comment>P1-52. Names the two things a user can act on. It must NOT claim which bytes were affected: SerialPort.ErrorReceived carries no position, so the report is about the line, not about a frame. Raised at most once per kind per connection -- a wrong baud rate produces one framing error per byte.</comment>
+  </data>
+  <data name="ErrorKind.RecordingFailed" xml:space="preserve">
+    <value>Recording stopped: the frame could not be written. Check free disk space and that the recording database is writable.</value>
+    <comment>P2-53, path 6. Must name a cause and something to check -- "see the log" is not actionable in the user form, which has no way to open the log folder.</comment>
+  </data>
+  <data name="Dialog.NewSession.OpenFailed.Terminal" xml:space="preserve">
+    <value>Could not open {0}: {1} Check the port and try again.</value>
+    <comment>Shown inside the New Session dialog when the port cannot be opened. The dialog stays open so the user can pick another port and retry ( 01-spec 4.7 ). {0} port name, {1} the classified reason from ErrorKind.*. DO NOT add punctuation after {1}: all seven ErrorKind.* strings already end with a period - appending one yields "open it.. Check". Hit for real on 2026-07-30. Never put the raw framework message here - that goes to the log only.</comment>
+  </data>
+  <data name="Dialog.NewSession.OpenFailed.Monitor" xml:space="preserve">
+    <value>Serial monitoring needs both ports open. Channel {0} ({1}) could not be opened: {2} Check the port and try again.</value>
+    <comment>Monitor variant. {0} channel letter A or B, {1} port name, DO NOT add punctuation after the placeholder: all seven ErrorKind.* strings already end with a period, so appending one yields "open it.. Check". Hit for real on 2026-07-30. {2} classified reason. Naming the channel matters: without it the user does not know which dropdown to change. Note ports are opened in order, so "both failed" surfaces as channel A - B was never tried.</comment>
+  </data>
+
+  <!-- ============ Enum display names ============
+       Key convention: Enum.{TypeName}.{ValueName} -->
+  <data name="Enum.DisplayFormat.Ascii" xml:space="preserve">
+    <value>ASCII</value>
+  </data>
+  <data name="Enum.DisplayFormat.Hex" xml:space="preserve">
+    <value>HEX</value>
+  </data>
+  <data name="Enum.DisplayFormat.HexAndAscii" xml:space="preserve">
+    <value>HEX + ASCII</value>
+  </data>
+
+  <data name="Enum.TimestampMode.None" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Enum.TimestampMode.Absolute" xml:space="preserve">
+    <value>Absolute</value>
+  </data>
+  <data name="Enum.TimestampMode.Relative" xml:space="preserve">
+    <value>Relative</value>
+  </data>
+
+  <data name="Enum.SerialParity.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Enum.SerialParity.Odd" xml:space="preserve">
+    <value>Odd</value>
+  </data>
+  <data name="Enum.SerialParity.Even" xml:space="preserve">
+    <value>Even</value>
+  </data>
+  <data name="Enum.SerialParity.Mark" xml:space="preserve">
+    <value>Mark</value>
+  </data>
+  <data name="Enum.SerialParity.Space" xml:space="preserve">
+    <value>Space</value>
+  </data>
+
+  <data name="Enum.SerialStopBits.One" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="Enum.SerialStopBits.OnePointFive" xml:space="preserve">
+    <value>1.5</value>
+  </data>
+  <data name="Enum.SerialStopBits.Two" xml:space="preserve">
+    <value>2</value>
+  </data>
+
+  <data name="Enum.SerialFlowControl.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Enum.SerialFlowControl.RequestToSend" xml:space="preserve">
+    <value>RTS / CTS</value>
+  </data>
+  <data name="Enum.SerialFlowControl.XOnXOff" xml:space="preserve">
+    <value>XON / XOFF</value>
+  </data>
+
+  <data name="Enum.LineEnding.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Enum.LineEnding.Cr" xml:space="preserve">
+    <value>CR</value>
+  </data>
+  <data name="Enum.LineEnding.Lf" xml:space="preserve">
+    <value>LF</value>
+  </data>
+  <data name="Enum.LineEnding.CrLf" xml:space="preserve">
+    <value>CRLF</value>
+  </data>
+</root>

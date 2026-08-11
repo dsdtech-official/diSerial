@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    领域层：模型 + 服务契约。
+    刻意不引用任何 UI 框架或平台特定包，保证可脱离 Avalonia 单元测试。
+    公共编译属性来自解决方案根目录的 Directory.Build.props。
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>DiSerial.Core</RootNamespace>
+    <AssemblyName>DiSerial.Core</AssemblyName>
+  </PropertyGroup>
+
+</Project>

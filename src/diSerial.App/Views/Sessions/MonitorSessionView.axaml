@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sessions="using:DiSerial.App.ViewModels.Sessions"
+             xmlns:views="using:DiSerial.App.Views.Panels"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1060" d:DesignHeight="560"
+             x:Class="DiSerial.App.Views.Sessions.MonitorSessionView"
+             x:DataType="sessions:MonitorSessionViewModel">
+
+  <!--
+    双串口监听会话 —— V1.0 的核心界面。
+
+    与终端会话相比只有 7 处差异（Δms 列、通道标记与配色、视图切换与交换
+    A/B、通道面板、发送禁用、双通道状态、异常着色），其余完全共用。
+    这是控制复杂度的关键：显示引擎、参数配置、日志全部复用同一套组件。
+  -->
+
+  <DockPanel>
+
+    <!-- ⚠️ WrapPanel, not StackPanel (P1-43, 2026-08-02): a horizontal StackPanel neither wraps
+         nor scrolls, so anything that does not fit is simply clipped — silently, with no log
+         and no alternative entry point for the control that vanished. Measured: at the 820 px
+         MinWidth the English toolbar lost all three checkboxes and half the timestamp dropdown.
+         Zero semantic change; the cost is that the toolbar grows a row instead of hiding things.
+
+         ⭐ The display settings moved into a flyout on 2026-08-10, so this toolbar now matches
+         the terminal's. That REVERSES the 2026-08-02 user decision ("the flyout is terminal
+         only for now"), and the new information that reversed it was a measurement (P2-94):
+         with the settings inline, this toolbar wrapped to two rows at the DEFAULT window width
+         in five of the nine shipped languages (fr, de, es, it, ja), and English itself had only
+         64 physical px of slack left. ⚠️ Note which half of that is the real finding: English
+         was already at the edge, so this was never "the translations broke it" — the row had no
+         room for anything more. The WrapPanel caught it exactly as intended; the cost it pays is
+         a taller toolbar, and it pays it silently.
+
+         ⛔ Do NOT move these controls back inline to "save a click". Measured after the move:
+         the widest language needs well under the 820 px MinWidth here. -->
+    <Border DockPanel.Dock="Top" Classes="toolbar">
+      <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+        <Button Content="{loc:Translate Toolbar.StartMonitoring}" Command="{Binding ConnectCommand}" />
+        <Button Content="{loc:Translate Toolbar.Stop}" Command="{Binding DisconnectCommand}" />
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
+        <Button Content="{loc:Translate Toolbar.Clear}" Command="{Binding ClearCommand}" />
+        <!-- P1-40: the label swaps to "Resume" while paused. Bound, not {loc:Translate},
+             because it is computed at runtime — this button is the only way back. -->
+        <Button Content="{Binding PauseButtonText}" Command="{Binding TogglePauseCommand}" />
+        <Button Content="{Binding RecordButtonText}" Command="{Binding ToggleRecordCommand}" />
+        <Button Content="{loc:Translate Toolbar.Export}" Command="{Binding ExportCommand}" />
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
+
+        <!--
+          ⚠️ These four settings have their ONLY entry point here — the view menu's counterparts
+          are disabled placeholders (01-spec 6.0). So nothing may be quietly dropped while moving
+          them into the flyout: dropped means the user cannot reach it at all. The four map one
+          for one to what used to sit inline: display format · timestamp · channel column · Δms.
+
+          ⭐ The channel column is not the same thing here as in a terminal session: it carries
+          channel AND direction (A → / B →), which is the core of the M-04 merged timeline, so it
+          stays on by default. Being able to turn it off is what 01-spec 6.1's unflagged item
+          "【监】显示方向标记" asked for, and that entry point survives this move.
+
+          🔒 PreferenceWriteBindingTests requires every persisted preference to have at least one
+          write binding in some .axaml. Both checkboxes stay in this same file, so the guard still
+          sees them. ⚠️ It scans markup with comments stripped, so a control that is commented out
+          reads to it exactly like a control that was deleted.
+        -->
+        <Button Content="{loc:Translate Toolbar.DisplaySettings}">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedLeft">
+              <StackPanel Spacing="10" Margin="4" MinWidth="220">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="caption" Text="{loc:Translate Toolbar.Display}" />
+                  <ComboBox HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding LogPanel.DisplayFormatChoices}"
+                            SelectedValue="{Binding LogPanel.DisplayFormat}"
+                            SelectedValueBinding="{Binding Value}"
+                            DisplayMemberBinding="{Binding DisplayName}" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="caption" Text="{loc:Translate Toolbar.Timestamp}" />
+                  <ComboBox HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding LogPanel.TimestampModeChoices}"
+                            SelectedValue="{Binding LogPanel.TimestampMode}"
+                            SelectedValueBinding="{Binding Value}"
+                            DisplayMemberBinding="{Binding DisplayName}" />
+                </StackPanel>
+
+                <CheckBox Content="{loc:Translate Toolbar.ShowChannel}"
+                          IsChecked="{Binding LogPanel.ShowChannelColumn}" />
+                <CheckBox Content="{loc:Translate Toolbar.ShowDelta}"
+                          IsChecked="{Binding LogPanel.ShowDeltaColumn}" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+
+        <!-- ⛔ 原先此处是「交换 A/B」（M-06），2026-08-01 随 P0-9 移除，不要加回来。
+             它只对调 ViewModel 侧的两个通道对象，采集侧的端口↔ChannelId 映射不动，
+             于是交换之后满屏归属全错、且会追溯改写已导出的文件。
+             它想解决的「我搞错了哪个口是哪一侧」现在由左侧面板改端口别名表达。
+             详见 01-spec 4.13。 -->
+      </WrapPanel>
+    </Border>
+
+    <!-- 通道面板（M-05a）：别名可编辑，配色固定。
+         宽度用 MinWidth 而非固定 Width —— 德语等语言的文本比英语长 30–40%。 -->
+    <Border DockPanel.Dock="Left" MinWidth="180" MaxWidth="260" Padding="10"
+            BorderThickness="0,0,1,0"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <StackPanel Spacing="12">
+        <TextBlock Classes="caption" Text="{loc:Translate Channel.Header}" />
+
+        <StackPanel Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Border Width="3" Height="14" Background="#378ADD" />
+            <TextBlock Classes="mono" Text="{Binding ChannelA.PortName}" />
+          </StackPanel>
+          <!-- 占位文字带端口名（「COM6 的别名」）。⚠️ 它是**运行期算出来的**，
+               不能用 loc:Translate（那是编译期取固定键），见 MonitorSessionViewModel.ApplyChannelPlaceholders -->
+          <TextBox Text="{Binding ChannelA.Alias}" PlaceholderText="{Binding ChannelA.AliasPlaceholder}" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Border Width="3" Height="14" Background="#1D9E75" />
+            <TextBlock Classes="mono" Text="{Binding ChannelB.PortName}" />
+          </StackPanel>
+          <TextBox Text="{Binding ChannelB.Alias}" PlaceholderText="{Binding ChannelB.AliasPlaceholder}" />
+        </StackPanel>
+
+        <!-- A "sync parameters" checkbox (M-03) used to sit here. Deleted 2026-08-02 (P1-49):
+             it never did anything, and it never could - CreateMonitor takes a single settings
+             object, so "both sides share one set of parameters" is welded into the structure.
+             Full rationale next to AppSettingsModel.Monitor. -->
+
+        <Border Height="1" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+        <StackPanel Spacing="2">
+          <TextBlock Classes="caption" Text="{loc:Translate Channel.BytesReceived}" />
+          <TextBlock Classes="mono" Text="{Binding ChannelA.BytesReceived, StringFormat='A  {0}'}" />
+          <TextBlock Classes="mono" Text="{Binding ChannelB.BytesReceived, StringFormat='B  {0}'}" />
+        </StackPanel>
+
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{loc:Translate Channel.TimestampNote}" />
+      </StackPanel>
+    </Border>
+
+    <!-- ⚠️ No DataContext override since 2026-08-02: SendPanelView binds at the SESSION level
+         so it can reach both SendPanel.X and LogPanel.X. See that file's header. -->
+    <views:SendPanelView DockPanel.Dock="Bottom" />
+
+    <!-- 合并时间轴：本软件不可替代性的唯一来源 -->
+    <views:LogPanelView DataContext="{Binding LogPanel}" />
+
+  </DockPanel>
+</UserControl>

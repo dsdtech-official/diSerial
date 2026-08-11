@@ -1,0 +1,124 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:DiSerial.App.Converters"
+             xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+             x:Class="DiSerial.App.App"
+             RequestedThemeVariant="Default">
+
+    <!-- ViewLocator 需要注入 IServiceProvider，故在 App.axaml.cs 中以代码注册，
+         不在此处声明 <Application.DataTemplates>。 -->
+
+    <Application.Resources>
+        <conv:ChannelToBrushConverter x:Key="ChannelToBrush" />
+        <conv:FrameAccentToBrushConverter x:Key="AccentToBrush" />
+        <conv:SentVisibilityConverter x:Key="SentVisible" />
+        <conv:FrameRowBackgroundConverter x:Key="RowBackground" />
+        <conv:BoolToThicknessConverter x:Key="InjectionBorder" />
+        <conv:ControlLineStateConverter x:Key="ControlLine" />
+
+        <!--
+            A session type card. Lives here because it is shown in TWO places since 2026-08-03:
+            the new session dialog's first step, and the main window's empty state. Two copies
+            would drift, and they sit on screen one click apart, so a drift would be visible.
+
+            ⭐ This template names no session type. It renders whatever SessionTypeItem it is
+            handed, which is what lets a new type be one catalog entry plus a config VM and View.
+        -->
+        <DataTemplate x:Key="SessionTypeCard" DataType="dialogs:SessionTypeItem">
+            <StackPanel Spacing="6">
+                <TextBlock Text="{Binding Title}" FontSize="14" TextWrapping="Wrap" />
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Description}" />
+                <!-- Only the types that need one carry this line. -->
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           IsVisible="{Binding HasRequirement}"
+                           Text="{Binding Requirement}" />
+            </StackPanel>
+        </DataTemplate>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- 数据显示区统一使用等宽字体，保证十六进制列对齐 -->
+        <Style Selector="TextBlock.mono">
+            <Setter Property="FontFamily" Value="Consolas,Menlo,DejaVu Sans Mono,monospace" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.65" />
+        </Style>
+        <Style Selector="Border.toolbar">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+        </Style>
+
+        <!--
+            A read-only TextBox must LOOK read-only.
+
+            Avalonia renders IsReadOnly identically to editable, so a frozen field invites the
+            user to type into it and silently swallows every keystroke. The send input is frozen
+            while a timed send runs (spec 4.14, promise 3) and this is the only cue that says so
+            — its neighbours grey out, and a normal-looking box sitting between greyed controls
+            reads as "this one still works".
+
+            ⚠️ Deliberately NOT IsEnabled="False": disabling would also block selecting and
+            copying the frozen payload, and the user asked to keep it read-only rather than
+            disabled (2026-08-02). This styles the same state instead of changing it.
+        -->
+        <Style Selector="TextBox.lockable[IsReadOnly=True]">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+
+        <!--
+            The session type cards, shared by the dialog's step 1 and the empty state.
+
+            A ListBox rather than a row of Buttons, and that is the fix for a real defect: the
+            buttons had NO selected state at all. Clicking "monitor" left both cards looking
+            identical, and the only feedback that the click had registered was the port area
+            below changing shape. Selection is what a ListBox is for, so it also brings keyboard
+            navigation with it.
+
+            ⚠️ Styles, not a ControlTheme: a ControlTheme replaces the template and would need
+            BasedOn to keep the default one (03-conventions 5.1, which cost a round when the
+            dropdown items became invisible). Setters layered on the stock theme cannot do that.
+        -->
+        <!--
+            ⚠️ The negative right margin cancels the trailing gap left by the last card's own
+            Margin. Without it the block measures 12px wider than what you can see, so a
+            CENTRED parent puts the cards 6px left of everything above and below them. The
+            dialog never showed this because its content is left aligned; the empty state does.
+        -->
+        <Style Selector="ListBox.sessionTypes">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,-12,0" />
+        </Style>
+        <Style Selector="ListBox.sessionTypes ListBoxItem">
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+        <!--
+            An unselected card still has to look like a card. Without this it renders as bare
+            text next to a solid selected block, and the two stop reading as the same kind of
+            thing (seen on screen, 2026-08-03).
+
+            ⚠️ Scoped to :not(:selected) rather than set on the base style: a plain ListBoxItem
+            setter is applied after the theme and would flatten the selected background too,
+            taking the selection cue back out.
+        -->
+        <Style Selector="ListBox.sessionTypes ListBoxItem:not(:selected)">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+        </Style>
+        <Style Selector="ListBox.sessionTypes ListBoxItem:selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+    </Application.Styles>
+</Application>

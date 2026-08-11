@@ -1,0 +1,103 @@
+<Project>
+
+  <!-- 全解决方案共享的编译属性。各 csproj 不再重复声明。 -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+
+    <!--
+      把源码根从嵌入的调试信息里抹掉。
+
+      不设它时走 SDK 默认，异常堆栈里会带上**构建机的绝对路径**：
+        at ...SystemIoSerialPort.OpenAsync(...) in
+           <构建机自己的路径>\src\...\SystemIoSerialPort.cs:line 96
+      而 01-spec 4.7 共有第 6 条要求「异常记录要带完整调用栈」，日志又要交给用户
+      经支持途径回传 —— 于是构建机的目录结构就跟着日志一起出去了。
+
+      ⛔ 上面那个占位符**刻意不写成一个真路径**（2026-08-11 改）：本文件随公开仓发出去，
+      而它此前举的例子是**这台开发机的真实目录**。⚠️ 一段解释「别让构建机路径外泄」的注释，
+      自己带着一个构建机路径 —— 首次公开推送前的最后一遍扫描才逮到。
+      ⭐ 别把它换回真路径：举例不需要真的，而这个文件是会被外人读到的。
+
+      映射后变成 /_/src/...，**文件名与行号原样保留**，取证能力一点不减。
+      /_/ 这个标记沿用 dotnet/runtime 自己的写法。
+
+      ⚠️ 刻意**不加 Configuration 条件** —— 02-architecture 11.1 记着
+      「csproj Configuration 条件：无实例」，两种构建走完全同一条路径是本项目
+      反复付过学费的约定。PathMap 不改变任何代码路径，只改嵌入的路径字符串。
+
+      代价：调试器按 PDB 里的路径找源码，因此 VS / Rider 里从堆栈跳转到源文件
+      可能会提示「找不到源文件」，需手动指一次目录。要恢复交互调试体验，
+      给本行加 Condition="'$(Configuration)' == 'Release'" 即可 —— 但那会重新
+      引入上面说的那个「无实例」类别。
+    -->
+    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
+  </PropertyGroup>
+
+  <!--
+    产品标识 —— **版本号的单一来源**（P1-16，2026-08-02）。
+
+    在这之前一处都没声明，后果有两个：
+      1. 启动横幅的 app.version 永远是 SDK 默认的 1.0.0.0，拿到用户日志分不清是哪个构建 ——
+         恰好抵消了 P0-0 日志组件的一部分价值；
+      2. Windows 文件属性里公司与产品名显示为 "DiSerial.App"，对「官方配套软件」不合适。
+
+    ⚠️ **改版本时只改这里一处。** 另外两个地方刻意<u>不</u>跟着维护：
+
+      * src/diSerial.App/app.manifest 的 assemblyIdentity version="1.0.0.0"
+        —— 那是 Windows 侧标识，与产品版本无关。让它跟着变会多出第三个要同步的地方。
+      * About.Message 的译文里**不再写版本号** —— 改成 {0} 占位符由代码填。
+        版本是事实，不是可翻译文本；写在译文里意味着两种语言各有一份、还会各自过期。
+
+    ⭐ **横幅读的不是 Version，是 AssemblyInformationalVersion。** 这一点容易搞反：
+    <Version> 会同时决定 AssemblyVersion，而后者恒为四段、按惯例保持稳定，
+    所以声明 <Version>1.0.0</Version> 之后 GetName().Version 算出来**仍然是 1.0.0.0**。
+    SDK 免费在 InformationalVersion 后面追加 +<git sha>，那才是能区分构建的那个值，
+    落点见 IPlatformDiagnostics.AppVersion()。
+  -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Product>diSerial</Product>
+    <Company>DSD TECH (DongGuan DESHIDE TECHNOLOGY CO.,LTD)</Company>
+    <!--
+      ⚠️ 刻意写 ASCII 的 "(c)" 而不是版权符号（用户 2026-08-02 定）。
+      ⚠️ 单年份，不写 2026-2027 这种区间 —— 区间又是一个「靠记得去更新」的数字（9.3）。
+      ⛔ **版权声明不授予任何许可**：仓库根目前**没有 LICENSE 文件**，而 01-spec 第一节
+         写的仍是「MIT 或 Apache-2.0」—— 协议本身没定。两者要一起定，见 00-STATUS。
+    -->
+    <Copyright>Copyright (c) 2026 DongGuan DESHIDE TECHNOLOGY CO.,LTD</Copyright>
+  </PropertyGroup>
+
+  <!-- 统一的 NuGet 版本，避免各项目版本漂移 -->
+  <PropertyGroup>
+    <AvaloniaVersion>12.1.0</AvaloniaVersion>
+    <CommunityToolkitMvvmVersion>8.4.2</CommunityToolkitMvvmVersion>
+    <MicrosoftExtensionsVersion>10.0.10</MicrosoftExtensionsVersion>
+
+    <!--
+      SQLitePCLRaw：C-09 记录库的原生绑定，由 Microsoft.Data.Sqlite 传递引入。
+      ⚠️ 单列出来是因为**必须显式提升**：Microsoft.Data.Sqlite 10.0.10 拖的是 2.1.11，
+         而 2.1.x 在 GHSA-2m69-gcr7-jv3q 的影响范围内（NU1903 高危）。
+         降回 2.1.x 会让 `dotnet build` 重新报警告。
+    -->
+    <SQLitePCLRawVersion>3.0.5</SQLitePCLRawVersion>
+
+    <!--
+      日志（P0-0）。Serilog 只是 Microsoft.Extensions.Logging 背后的实现，
+      引用点被限制在 App 的 Composition/LoggingBootstrap.cs 一个文件内 ——
+      与项目处理 System.IO.Ports 是同一套路，保证选型可逆。
+      各包版本线互不相同，故分开钉。
+    -->
+    <SerilogVersion>4.4.0</SerilogVersion>
+    <SerilogExtensionsLoggingVersion>10.0.0</SerilogExtensionsLoggingVersion>
+    <SerilogFormattingCompactVersion>3.0.0</SerilogFormattingCompactVersion>
+    <SerilogSinksAsyncVersion>2.1.0</SerilogSinksAsyncVersion>
+    <SerilogSinksFileVersion>7.0.0</SerilogSinksFileVersion>
+  </PropertyGroup>
+
+</Project>

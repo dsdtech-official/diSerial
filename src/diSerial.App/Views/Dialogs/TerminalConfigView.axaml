@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+             xmlns:views="using:DiSerial.App.Views.Dialogs"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="560"
+             x:Class="DiSerial.App.Views.Dialogs.TerminalConfigView"
+             x:DataType="dialogs:TerminalConfigViewModel">
+
+  <!--
+    Step 2 for a terminal session: one serial port, then the serial parameters.
+
+    ⚠ Found by naming convention, not by a registration: TerminalConfigViewModel →
+    TerminalConfigView (Composition/ViewLocator). Renaming either half breaks the pairing
+    silently — the dialog would render the "View not found" placeholder instead.
+  -->
+
+  <StackPanel Spacing="16" Grid.IsSharedSizeScope="True">
+
+    <Grid ColumnDefinitions="Auto,*">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="{loc:Translate Dialog.NewSession.Port}"
+                 VerticalAlignment="Center" Margin="0,0,10,0" />
+      <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                ItemsSource="{Binding AvailablePorts}"
+                SelectedItem="{Binding SelectedPort}"
+                DisplayMemberBinding="{Binding DisplayName}" />
+    </Grid>
+
+    <Border Height="1" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+    <views:SerialSettingsView DataContext="{Binding Settings}" />
+
+  </StackPanel>
+</UserControl>

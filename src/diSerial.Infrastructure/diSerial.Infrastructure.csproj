@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    基础设施层：Core 中各接口的具体实现。
+    V1.0 UI 阶段以桩实现为主，逐步替换为真实实现（串口 I/O、平台枚举等）。
+    同样不引用 UI 框架。
+  -->
+
+  <PropertyGroup>
+    <RootNamespace>DiSerial.Infrastructure</RootNamespace>
+    <AssemblyName>DiSerial.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      只引用 Abstractions —— 本层用的是 ILogger<T> 契约与 [LoggerMessage] 源生成器，
+      具体日志实现（Serilog）由 App 的组合根装配，本层不感知。
+    -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      System.IO.Ports: serial I/O on Windows, the only platform diSerial ships.
+      On macOS this library throws PlatformNotSupportedException, so SerialPortFactory
+      reports macOS as unsupported and never reaches here. A P/Invoke termios
+      implementation lands in V1.1.
+    -->
+    <PackageReference Include="System.IO.Ports" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      System.Management：仅用于 Windows 下通过 WMI 取端口的 VID/PID。
+      使用点被限制在 WindowsPortDetailProvider 一个文件内，
+      并以 [SupportedOSPlatform("windows")] 标注，其余平台不会加载。
+    -->
+    <PackageReference Include="System.Management" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      Microsoft.Data.Sqlite：C-09 记录的落库（见 docs/02-architecture.md 第十二节）。
+
+      ⚠️ 这是本项目第一个带原生库的依赖。它拖进 SQLitePCLRaw，
+         而原生库是**按 RID 分发**的 —— win-x64 与 win-arm64 各一份。
+         开发机是 ARM64、目标用户多半 x64，**两个 RID 都要验过才能发布**。
+
+      ⚠️ 与第十节「设置用 JSON、不引入任何依赖」不冲突：那条的依据写着
+         「这类数据的形状 —— 十来个标量」，而记录是成千上万行、要按批次删、
+         将来要按时间段查。同一个理由推不出同一个结论。
+
+      ⚠️ 版本必须跟着 $(MicrosoftExtensionsVersion) 走，不要写死。
+         初版写的 9.0.0 会拖进 SQLitePCLRaw.lib.e_sqlite3 2.1.10 ——
+         那一版有已知**高危**漏洞（GHSA-2m69-gcr7-jv3q），
+         `dotnet build` 会报 NU1903。10.0.x 拖的是修补后的原生库。
+    -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      ⚠️ 显式提升 SQLitePCLRaw，覆盖 Microsoft.Data.Sqlite 拖进来的传递版本。
+
+      Microsoft.Data.Sqlite 10.0.10 依赖 SQLitePCLRaw 2.1.11，而 2.1.10 与 2.1.11
+      都在 GHSA-2m69-gcr7-jv3q 的影响范围内（NU1903，**高危**）。修复在 3.x 线上。
+
+      ⚠️ 这是跨大版本覆盖传递依赖，**不能只看警告消失就算数** ——
+         SqliteSessionRecorderTests 会真的建库、写事务、读回来，
+         那一组过了才说明这个覆盖在运行期成立。
+    -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="$(SQLitePCLRawVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\diSerial.Core\diSerial.Core.csproj" />
+  </ItemGroup>
+
+</Project>

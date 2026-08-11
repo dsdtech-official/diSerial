@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="460" d:DesignHeight="240"
+        x:Class="DiSerial.App.Views.Dialogs.ConfirmationDialog"
+        x:DataType="dialogs:ConfirmationDialogViewModel"
+        Title="{Binding Title}"
+        MinWidth="440" MaxWidth="560" SizeToContent="WidthAndHeight"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <!-- 文案由调用方传入时已完成本地化，本视图不直接引用资源键。 -->
+  <StackPanel Margin="20" Spacing="16">
+    <TextBlock Text="{Binding Title}" FontSize="16" />
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Opacity="0.85" MaxWidth="480" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{Binding CancelText}" IsVisible="{Binding ShowCancel}"
+              Command="{Binding CancelCommand}" />
+      <Button Content="{Binding ConfirmText}" IsDefault="True"
+              Command="{Binding ConfirmCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

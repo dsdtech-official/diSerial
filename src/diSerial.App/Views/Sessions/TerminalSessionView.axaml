@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sessions="using:DiSerial.App.ViewModels.Sessions"
+             xmlns:views="using:DiSerial.App.Views.Panels"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="560"
+             x:Class="DiSerial.App.Views.Sessions.TerminalSessionView"
+             x:DataType="sessions:TerminalSessionViewModel">
+
+  <!--
+    单串口终端会话（V1.0「够用即可」范围）。
+    工具栏放在会话内部而非主窗口，使不同会话类型各自拥有自己的工具栏，
+    主窗口无需任何条件判断逻辑。
+  -->
+
+  <DockPanel>
+
+    <!--
+      工具栏只放**动作**，显示设置收进一个浮出面板（2026-08-02 重排）。
+
+      ⚠️ Why: measured on 2026-08-02, the old eleven-control toolbar needed ~1100 logical px
+      in English while the window's MinWidth is 820 — at that width all three checkboxes and
+      half the timestamp dropdown were simply clipped, with no alternative entry point
+      (P1-43). But the count was only half the problem: six of the eleven were actions and
+      five were display settings, so finding "Pause" meant scanning past five controls a user
+      touches once. Splitting by kind is what actually makes it readable; six actions plus one
+      button measure ~580 px and fit with room to spare.
+
+      ⚠️ WrapPanel stays as a backstop even though the content now fits — it costs one
+      attribute and covers what was not measured: longer languages (German runs 30–40% past
+      English), user font scaling, and the next button someone adds.
+    -->
+    <Border DockPanel.Dock="Top" Classes="toolbar">
+      <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
+        <Button Content="{loc:Translate Toolbar.Connect}" Command="{Binding ConnectCommand}" />
+        <Button Content="{loc:Translate Toolbar.Disconnect}" Command="{Binding DisconnectCommand}" />
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
+        <Button Content="{loc:Translate Toolbar.Clear}" Command="{Binding ClearCommand}" />
+        <!-- P1-40: the label swaps to "Resume" while paused. Bound, not {loc:Translate},
+             because it is computed at runtime — this button is the only way back. -->
+        <Button Content="{Binding PauseButtonText}" Command="{Binding TogglePauseCommand}" />
+        <Button Content="{Binding RecordButtonText}" Command="{Binding ToggleRecordCommand}" />
+        <Button Content="{loc:Translate Toolbar.Export}" Command="{Binding ExportCommand}" />
+        <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
+
+        <!--
+          ⚠️ 这些设置**只在这里有入口** —— 视图菜单里的对应条目是 IsEnabled="False" 灰占位
+          （01-spec 6.0）。所以收进浮出面板时不能顺手把哪一项漏掉：漏掉 = 用户彻底够不着。
+          四项与改动前逐一对应：显示格式 · 时间戳 · 通道列 · Δms 列。
+          ⚠️ 第五项「显示发送数据」不在这里 —— 它移进了发送区第一行（T-05 藏的是行不是列）。
+        -->
+        <Button Content="{loc:Translate Toolbar.DisplaySettings}">
+          <Button.Flyout>
+            <Flyout Placement="BottomEdgeAlignedLeft">
+              <StackPanel Spacing="10" Margin="4" MinWidth="220">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="caption" Text="{loc:Translate Toolbar.Display}" />
+                  <ComboBox HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding LogPanel.DisplayFormatChoices}"
+                            SelectedValue="{Binding LogPanel.DisplayFormat}"
+                            SelectedValueBinding="{Binding Value}"
+                            DisplayMemberBinding="{Binding DisplayName}" />
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="caption" Text="{loc:Translate Toolbar.Timestamp}" />
+                  <ComboBox HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding LogPanel.TimestampModeChoices}"
+                            SelectedValue="{Binding LogPanel.TimestampMode}"
+                            SelectedValueBinding="{Binding Value}"
+                            DisplayMemberBinding="{Binding DisplayName}" />
+                </StackPanel>
+
+                <!-- 列显隐（C-27 记住）。
+                     ⚠️ 在这两个勾选框出现之前，ShowChannelColumn / ShowDeltaColumn
+                     全项目只有 IsVisible 绑定、没有一处写它们 —— 于是 01-spec 8.3 承诺的
+                     方向标记（终端是 ← RX / → TX）用户永远看不到也关不掉，
+                     只能手改 %AppData%\diSerial\settings.json。
+                     持久化不需要额外代码：SessionViewModel.OnPreferenceChanged 早就在监听这两个属性。
+                     🔒 PreferenceWriteBindingTests 守着「每个持久化偏好至少有一处写绑定」——
+                     移进 Flyout 之后仍在同一个 .axaml 里，护栏照常看得见。 -->
+                <CheckBox Content="{loc:Translate Toolbar.ShowChannel}"
+                          IsChecked="{Binding LogPanel.ShowChannelColumn}" />
+                <CheckBox Content="{loc:Translate Toolbar.ShowDelta}"
+                          IsChecked="{Binding LogPanel.ShowDeltaColumn}" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+      </WrapPanel>
+    </Border>
+
+    <!-- ⚠️ No DataContext override since 2026-08-02: SendPanelView binds at the SESSION level
+         so it can reach both SendPanel.X and LogPanel.X (the "show sent data" checkbox moved
+         into its first row). See that file's header. -->
+    <views:SendPanelView x:Name="SendPanel" DockPanel.Dock="Bottom" />
+
+    <views:LogPanelView DataContext="{Binding LogPanel}" />
+
+  </DockPanel>
+</UserControl>

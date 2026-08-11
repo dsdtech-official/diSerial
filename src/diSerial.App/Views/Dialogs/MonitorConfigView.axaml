@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+             xmlns:views="using:DiSerial.App.Views.Dialogs"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="560"
+             x:Class="DiSerial.App.Views.Dialogs.MonitorConfigView"
+             x:DataType="dialogs:MonitorConfigViewModel">
+
+  <!--
+    Step 2 for a monitor session: two serial ports, one per channel, then the serial parameters.
+
+    Each channel picks a port directly rather than choosing from "recognised devices" — any two
+    ports can be combined, so a dual-port adapter, two USB cables and our own diDatatracker all
+    look the same here.
+
+    ⚠ No alias input (P0-9, 2026-08-01). Which port is which side of the bus cannot be known
+    until traffic flows; asking here forces a guess. Aliases default to the port name and are
+    edited in the session. The "swap A/B" button went with it. Spec 4.13.
+  -->
+
+  <StackPanel Spacing="16" Grid.IsSharedSizeScope="True">
+
+    <Grid RowDefinitions="Auto,8,Auto">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Translate Dialog.NewSession.ChannelA}"
+                 VerticalAlignment="Center" Margin="0,0,10,0" />
+      <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                ItemsSource="{Binding AvailablePorts}"
+                SelectedItem="{Binding ChannelAPort}"
+                DisplayMemberBinding="{Binding DisplayName}" />
+
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Translate Dialog.NewSession.ChannelB}"
+                 VerticalAlignment="Center" Margin="0,0,10,0" />
+      <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                ItemsSource="{Binding AvailablePorts}"
+                SelectedItem="{Binding ChannelBPort}"
+                DisplayMemberBinding="{Binding DisplayName}" />
+    </Grid>
+
+    <Border Height="1" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+    <views:SerialSettingsView DataContext="{Binding Settings}" />
+
+  </StackPanel>
+</UserControl>

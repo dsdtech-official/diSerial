@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ============ 通用 ============ -->
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common.Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Common.Next" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+
+  <!-- ============ 应用 ============ -->
+  <data name="App.Name" xml:space="preserve">
+    <value>diSerial</value>
+  </data>
+  <data name="App.TitleWithSession" xml:space="preserve">
+    <value>diSerial — {0}</value>
+  </data>
+  <data name="App.TitleDeveloperMode" xml:space="preserve">
+    <value>{0}  ⚠ 开发模式 — 数据可能为模拟</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>就绪 — 尚未创建会话</value>
+  </data>
+
+  <!-- ============ 菜单 ============
+       下划线为键盘助记符，同级菜单内不可重复。 -->
+  <data name="Menu.File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Menu.File.NewSession" xml:space="preserve">
+    <value>新建会话...</value>
+  </data>
+  <data name="Menu.File.CloseSession" xml:space="preserve">
+    <value>关闭当前会话</value>
+  </data>
+  <data name="Menu.File.Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Menu.Session" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="Menu.Session.Connect" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="Menu.Session.Disconnect" xml:space="preserve">
+    <value>断开</value>
+  </data>
+  <data name="Menu.Session.Pause" xml:space="preserve">
+    <value>暂停接收</value>
+  </data>
+  <data name="Menu.Session.Resume" xml:space="preserve">
+    <value>恢复接收</value>
+  </data>
+  <data name="Menu.Session.Clear" xml:space="preserve">
+    <value>清空显示</value>
+  </data>
+  <data name="Menu.Session.Record" xml:space="preserve">
+    <value>开始 / 停止记录</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Menu.Edit.Find" xml:space="preserve">
+    <value>查找...</value>
+  </data>
+  <data name="Menu.Edit.Filter" xml:space="preserve">
+    <value>过滤...</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Menu.View.MergedTimeline" xml:space="preserve">
+    <value>合并时间轴</value>
+  </data>
+  <data name="Menu.View.Split" xml:space="preserve">
+    <value>上下分屏</value>
+  </data>
+  <data name="Menu.Tools" xml:space="preserve">
+    <value>工具</value>
+  </data>
+  <data name="Menu.Tools.Export" xml:space="preserve">
+    <value>导出显示内容...</value>
+  </data>
+  <data name="Menu.Language" xml:space="preserve">
+    <value>语言：{0}</value>
+    <comment>助记符已占用一对括号，故此处改用冒号，避免出现「语言(L)(简体中文)」的双括号。</comment>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>帮助</value>
+  </data>
+  <data name="Menu.Help.About" xml:space="preserve">
+    <value>关于 diSerial</value>
+  </data>
+
+  <!-- ============ 工具栏 ============ -->
+  <data name="Toolbar.Connect" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="Toolbar.Disconnect" xml:space="preserve">
+    <value>断开</value>
+  </data>
+  <data name="Toolbar.StartMonitoring" xml:space="preserve">
+    <value>开始监听</value>
+  </data>
+  <data name="Toolbar.Stop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="Toolbar.Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="Toolbar.Pause" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="Toolbar.Resume" xml:space="preserve">
+    <value>恢复</value>
+    <comment>显示暂停期间的工具栏按钮文字（P1-40）。按钮在本键与 Toolbar.Pause 之间切换，让「再点一下就能恢复」变得显然。</comment>
+  </data>
+  <data name="Toolbar.Record" xml:space="preserve">
+    <value>记录</value>
+  </data>
+  <data name="Toolbar.StopRecord" xml:space="preserve">
+    <value>停止记录</value>
+  </data>
+  <data name="Toolbar.Export" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Toolbar.Display" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Toolbar.Timestamp" xml:space="preserve">
+    <value>时间戳</value>
+  </data>
+
+  <!-- ============ 导出对话框（C-09 / M-08）============ -->
+  <data name="Dialog.Export.Title" xml:space="preserve">
+    <value>导出</value>
+    <comment>导出选项对话框的标题。「导出」按钮与「停止记录」之后都会打开它。</comment>
+  </data>
+  <data name="Dialog.Export.Format" xml:space="preserve">
+    <value>文件类型</value>
+    <comment>刻意叫「文件类型」而不是「格式」—— .tsv 与 .txt 内容完全相同（制表符分隔、一帧一行），差别只有扩展名。叫「格式」会让人以为数据本身不一样。</comment>
+  </data>
+  <data name="Dialog.Export.SaveTo" xml:space="preserve">
+    <value>保存到</value>
+  </data>
+  <data name="Dialog.Export.Browse" xml:space="preserve">
+    <value>浏览…</value>
+  </data>
+  <data name="Dialog.Export.Confirm" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Enum.ExportFormat.Tsv" xml:space="preserve">
+    <value>制表符分隔（.tsv）</value>
+    <comment>⚠️ 不要加「.csv」这个选项：名为 .csv 而内容是制表符分隔的文件，Excel 双击打开会把整行塞进一列 —— 而 csv 的主要受众正是要拖进 Excel 的人。见 01-spec 6.4。</comment>
+  </data>
+  <data name="Enum.ExportFormat.Csv" xml:space="preserve">
+    <value>逗号分隔（.csv）</value>
+  </data>
+
+  <!-- ============ 显示区列头 ============ -->
+  <data name="Toolbar.ShowChannel" xml:space="preserve">
+    <value>通道</value>
+    <comment>刻意与 Log.Column.Channel 用同一个词，让「勾选框 ↔ 它控制的那一列」一眼对应。</comment>
+  </data>
+  <data name="Toolbar.ShowDelta" xml:space="preserve">
+    <value>Δms</value>
+  </data>
+  <data name="Toolbar.DisplaySettings" xml:space="preserve">
+    <value>显示设置</value>
+  </data>
+  <data name="Toolbar.ShowSent" xml:space="preserve">
+    <value>显示发送数据</value>
+    <comment>Send-area checkbox, terminal sessions only: shows/hides locally sent rows (T-05, spec 4.12). It hides ROWS, not a column — do not word it as a column. ⚠️ Deliberately longer than the English "Sent" (user decision 2026-08-02): in Chinese the Send button one row below reads 发送 too, so a bare 发送 put the SAME word twice in one panel meaning two different things — a display toggle and "put bytes on the wire". English has no such clash (Sent is not Send), so it stayed short. ⚠️ The note here used to say "keep it as short as 通道/Δms" — that reason expired on 2026-08-02: those two moved into the terminal "display settings" flyout (spec 6.7 甲) while this one moved into the send area. They are no longer side by side.</comment>
+  </data>
+  <data name="Log.Column.Time" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="Log.Column.Delta" xml:space="preserve">
+    <value>Δms</value>
+  </data>
+  <data name="Log.Column.Channel" xml:space="preserve">
+    <value>通道</value>
+  </data>
+  <data name="Log.Column.Data" xml:space="preserve">
+    <value>数据</value>
+  </data>
+
+  <!-- ============ 通道面板（监听会话）============ -->
+  <data name="Channel.Header" xml:space="preserve">
+    <value>通道</value>
+  </data>
+  <data name="Channel.AliasPlaceholder" xml:space="preserve">
+    <value>{0} 的别名</value>
+    <comment>{0} = 端口名，如「COM6 的别名」。⚠️ 2026-08-01 取代原先的 Channel.AliasAPlaceholder / AliasBPlaceholder（「通道 A 别名」）—— 交换 A/B 删除后 A/B 两个字母整体退场，见 01-spec 4.13。</comment>
+  </data>
+  <data name="Channel.BytesReceived" xml:space="preserve">
+    <value>接收字节</value>
+  </data>
+  <data name="Channel.TimestampNote" xml:space="preserve">
+    <value>时间戳为软件级打点，受 USB 轮询与系统调度影响，不等同于硬件级微秒时间戳。</value>
+  </data>
+  <data name="Channel.PortWithAlias" xml:space="preserve">
+    <value>{0}「{1}」</value>
+    <comment>{0} = 端口名，{1} = 用户填的别名。仅在用户改过名之后才用；改名前只显示端口名，因为别名默认就等于端口名，否则会出现 COM6「COM6」这种自我重复。</comment>
+  </data>
+
+  <!-- ============ 帧行：通道 / 方向列（P2-69）============
+
+       ⛔ 四条<u>刻意</u>与英文取值相同：TX / RX 是串口领域的通用缩写。
+       进资源文件的意义不在于「现在译了」，而在于将来想译时是一次数据改动。
+  -->
+  <data name="Frame.Direction.Rx" xml:space="preserve">
+    <value>← RX</value>
+  </data>
+  <data name="Frame.Direction.Tx" xml:space="preserve">
+    <value>→ TX</value>
+  </data>
+  <data name="Frame.Channel.Observed" xml:space="preserve">
+    <value>{0} →</value>
+  </data>
+  <data name="Frame.Channel.Injected" xml:space="preserve">
+    <value>TX → {0}</value>
+  </data>
+
+  <!-- ============ 发送面板 ============ -->
+  <data name="Send.DisabledWarning" xml:space="preserve">
+    <value>监听模式下发送已禁用。向通道写入会把数据真实注入总线。</value>
+  </data>
+  <data name="Send.EnableSend" xml:space="preserve">
+    <value>启用发送</value>
+  </data>
+  <data name="Send.LineEnding" xml:space="preserve">
+    <value>结束符</value>
+  </data>
+  <data name="Send.Placeholder" xml:space="preserve">
+    <value>输入要发送的内容</value>
+  </data>
+  <data name="Send.Button" xml:space="preserve">
+    <value>发送</value>
+  </data>
+  <data name="Send.FormatAscii" xml:space="preserve">
+    <value>ASCII</value>
+    <comment>Not translated on purpose: protocol abbreviation, 03-conventions 2.7.</comment>
+  </data>
+  <data name="Send.FormatHex" xml:space="preserve">
+    <value>HEX</value>
+    <comment>Not translated. User decided 2026-08-02; must match Enum.DisplayFormat.Hex, which changed from "十六进制" to HEX in the same round (P2-23).</comment>
+  </data>
+  <data name="Send.History" xml:space="preserve">
+    <value>历史指令</value>
+    <comment>PlaceholderText of the send-history dropdown (T-03a). ⚠️ This is the dropdown's permanent resting text, not a transient hint: SelectedHistoryEntry always resets itself to null (SendPanelViewModel.OnSelectedHistoryEntryChanged), so the placeholder is never replaced by a selection. That is why it works as the control's label and why no separate label sits next to it — a label plus this placeholder would put the same word on screen twice, side by side (user decision 2026-08-02). ⚠️ It must therefore keep NAMING the content ("历史指令"), not read like an instruction ("选择…"): with an empty-looking box the user cannot tell "no history yet" from "nothing picked". English stays the shorter "History" by the same decision.</comment>
+  </data>
+  <data name="Send.HistoryRemove" xml:space="preserve">
+    <value>×</value>
+  </data>
+  <data name="Send.HistoryClear" xml:space="preserve">
+    <value>清空全部历史</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Title" xml:space="preserve">
+    <value>正在记录</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Message" xml:space="preserve">
+    <value>关闭该会话会停止记录。已记录的数据留在数据库里，但不会写出导出文件 —— 需要导出文件的话，请先取消并点「停止记录」。</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Confirm" xml:space="preserve">
+    <value>停止并关闭</value>
+  </data>
+  <data name="Send.HistoryClear.Title" xml:space="preserve">
+    <value>清空发送历史</value>
+  </data>
+  <data name="Send.HistoryClear.Message" xml:space="preserve">
+    <value>将删除全部 {0} 条已保存的指令，含列表中未显示的部分。此操作无法撤销。</value>
+  </data>
+  <data name="Send.HistoryClear.Confirm" xml:space="preserve">
+    <value>全部删除</value>
+  </data>
+  <data name="Send.HistoryClear.Failed" xml:space="preserve">
+    <value>历史未能删除，数据仍保存在磁盘上。</value>
+  </data>
+  <data name="Send.HistoryRemoveTip" xml:space="preserve">
+    <value>从保存的历史中删除这一条</value>
+  </data>
+  <data name="Signal.Dtr" xml:space="preserve">
+    <value>DTR</value>
+  </data>
+  <data name="Signal.Rts" xml:space="preserve">
+    <value>RTS</value>
+  </data>
+  <data name="Signal.Cts" xml:space="preserve">
+    <value>CTS</value>
+  </data>
+  <data name="Signal.Dsr" xml:space="preserve">
+    <value>DSR</value>
+  </data>
+  <data name="Signal.Dcd" xml:space="preserve">
+    <value>DCD</value>
+  </data>
+  <data name="Signal.Panel" xml:space="preserve">
+    <value>串行信号</value>
+  </data>
+  <data name="Signal.Outputs" xml:space="preserve">
+    <value>输出</value>
+  </data>
+  <data name="Signal.Inputs" xml:space="preserve">
+    <value>输入</value>
+  </data>
+  <data name="Signal.StateHigh" xml:space="preserve">
+    <value>有</value>
+  </data>
+  <data name="Signal.StateLow" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Signal.StateUnknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Signal.RtsOwnedByFlowControl" xml:space="preserve">
+    <value>（由流控接管）</value>
+  </data>
+  <data name="Send.TimedSend" xml:space="preserve">
+    <value>定时发送</value>
+  </data>
+  <data name="Send.Interval" xml:space="preserve">
+    <value>每隔</value>
+  </data>
+  <data name="Send.IntervalUnit" xml:space="preserve">
+    <value>ms</value>
+  </data>
+  <data name="Send.TimedStart" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="Send.TimedStop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+
+  <!-- ============ 新建会话对话框 ============ -->
+  <data name="Dialog.NewSession.Title" xml:space="preserve">
+    <value>新建会话</value>
+  </data>
+  <data name="Dialog.NewSession.SelectType" xml:space="preserve">
+    <value>选择会话类型</value>
+  </data>
+  <data name="Dialog.NewSession.Terminal" xml:space="preserve">
+    <value>串口终端</value>
+  </data>
+  <data name="Dialog.NewSession.TerminalDesc" xml:space="preserve">
+    <value>打开一个串口，收发数据、调试设备。</value>
+  </data>
+  <data name="Dialog.NewSession.Monitor" xml:space="preserve">
+    <value>串口监听</value>
+  </data>
+  <data name="Dialog.NewSession.MonitorDesc" xml:space="preserve">
+    <value>同时打开两个串口，旁路监听双向通讯，不干扰原有链路。</value>
+    <comment>⚠️ 这是用户读到的第一段关于监听的说明：2026-08-03 起卡片也出现在空状态上，而原先在那里的那段散文（Empty.Description）已删除 —— 它用文字解释同一件事，两处文案此前必须靠人保持不矛盾。⚠️ 不得再写「diSerial 会提示创建监听会话」这类措辞：插入提示（原 M-02）已于 2026-07-29 移除，插上设备本身不会有任何反应，用户从「新建会话」按钮开始。那句错的承诺中英两份都发布过，直到 1a 用人眼读出来才发现（P1-27）；现在由 ResourceWordingTests.BannedPhrases 直接让构建失败。此处不提任何具体硬件 —— 01-spec 原则 2 规定产品名只允许出现在「关于」。</comment>
+  </data>
+  <data name="Dialog.NewSession.MonitorRequires" xml:space="preserve">
+    <value>需要任意两个串口</value>
+    <comment>监听对任意两个端口成立：双通道适配器、两根独立 USB 线、或 diDatatracker。措辞保持通用。</comment>
+  </data>
+  <data name="Dialog.NewSession.Port" xml:space="preserve">
+    <value>端口</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelA" xml:space="preserve">
+    <value>通道 A</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelB" xml:space="preserve">
+    <value>通道 B</value>
+  </data>
+
+  <!-- ============ 串口参数 ============ -->
+  <data name="Serial.BaudRate" xml:space="preserve">
+    <value>波特率</value>
+  </data>
+  <data name="Serial.DataBits" xml:space="preserve">
+    <value>数据位</value>
+  </data>
+  <data name="Serial.Parity" xml:space="preserve">
+    <value>校验位</value>
+  </data>
+  <data name="Serial.StopBits" xml:space="preserve">
+    <value>停止位</value>
+  </data>
+  <data name="Serial.FlowControl" xml:space="preserve">
+    <value>流控</value>
+  </data>
+
+  <!-- ============ 会话标题与状态 ============ -->
+  <data name="Session.Terminal.Title" xml:space="preserve">
+    <value>{0} 终端</value>
+  </data>
+  <data name="Session.Monitor.Title" xml:space="preserve">
+    <value>{0} ↔ {1} 监听</value>
+  </data>
+  <data name="Session.Terminal.Status" xml:space="preserve">
+    <value>{0} · {1} · {2} · 帧 {3} · {4} B</value>
+  </data>
+  <data name="Session.Monitor.Status" xml:space="preserve">
+    <value>{0}↓{1} · {2}↓{3} · {4} · {5} · 帧 {6}</value>
+    <comment>{0}/{2} 是两路通道的描述，由 Channel.PortWithAlias 拼好后传进来（改名前只有端口名）。{1}/{3} 是各自的接收字节数，紧跟在它那一路后面。{4}=串口参数，{5}=状态，{6}=帧数。⚠️ 2026-08-01 起不再有 A:/B:/A↓/B↓ —— 交换 A/B 删除后那两个字母不指向任何东西，见 01-spec 4.13。</comment>
+  </data>
+
+  <!-- ============ 连接状态 ============ -->
+  <data name="State.Connected" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="State.Connecting" xml:space="preserve">
+    <value>连接中</value>
+  </data>
+  <data name="State.Faulted" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="State.Disconnected" xml:space="preserve">
+    <value>未连接</value>
+  </data>
+  <data name="State.Monitoring" xml:space="preserve">
+    <value>监听中</value>
+  </data>
+  <data name="State.DisplayPaused" xml:space="preserve">
+    <value>{0} · 显示已暂停</value>
+    <comment>{0} = 连接状态（已连接 / 监听中 / …）。显示暂停期间出现在状态栏（P1-40）。⚠️ 它是**追加**在实时状态后面而不是替换掉它 —— 暂停期间采集、计数、记录全都照常（规格 4.2a），把「监听中」换成「已暂停」会把事实说反。</comment>
+  </data>
+  <data name="State.Recording" xml:space="preserve">
+    <value>{0} · 记录中</value>
+    <comment>Appended, never a replacement.</comment>
+  </data>
+  <data name="State.NotStarted" xml:space="preserve">
+    <value>未开始</value>
+  </data>
+
+  <!-- ============ 平台支持 ============ -->
+  <data name="Platform.MacOsNotImplemented" xml:space="preserve">
+    <value>macOS 串口支持正在开发中（计划于 V1.1 提供）。</value>
+  </data>
+  <data name="Platform.Unknown" xml:space="preserve">
+    <value>当前平台不支持串口操作。</value>
+  </data>
+
+  <!-- ============ 总线注入警告（安全）============ -->
+  <data name="Injection.Title" xml:space="preserve">
+    <value>启用发送？</value>
+  </data>
+  <data name="Injection.Message" xml:space="preserve">
+    <value>向监听通道发送数据会把数据真实注入总线，可能干扰正在运行的设备。
+
+只有在你确认目标总线可以安全接受注入时才继续。</value>
+  </data>
+  <data name="Injection.Confirm" xml:space="preserve">
+    <value>我了解，启用发送</value>
+  </data>
+
+  <!-- ============ 关于 ============ -->
+  <data name="About.Title" xml:space="preserve">
+    <value>关于 diSerial</value>
+  </data>
+  <data name="About.Message" xml:space="preserve">
+    <value>diSerial — 免费开源串口工具
+
+V{0}。两种会话：串口终端连接一台设备；串口监听旁路观察两台设备之间的双向通讯。最初为 DSD TECH diDatatracker 开发的官方配套软件，但并不绑定该硬件。
+
+DongGuan DESHIDE TECHNOLOGY CO.,LTD
+www.deshide.com    dsd_tech@outlook.com
+
+"DSD TECH" is a registered trademark of DongGuan DESHIDE TECHNOLOGY CO.,LTD.
+完整声明见可执行文件旁的 NOTICE 文件。</value>
+    <comment>{0} = product version, filled by code from the assembly (AppInfo.DisplayVersion). ⛔ Do NOT type the number back into this sentence — see the English resource for why (P1-16).</comment>
+  </data>
+
+  <!-- ============ 协议解码摘要 ============
+       键定义在 DiSerial.Core.Models.DecoderKeys，使位于基础设施层的解码器
+       能够引用而不依赖本地化。解码器只给键与参数，不给成品文本。 -->
+  <data name="Decoder.Modbus.IllegalDataAddress" xml:space="preserve">
+    <value>异常码 02：非法数据地址</value>
+    <comment>Modbus RTU 异常码 02。数字要保留，工程师是按编号查的。</comment>
+  </data>
+
+  <!-- ============ 错误 ============ -->
+  <data name="Error.UnsupportedSessionKind" xml:space="preserve">
+    <value>尚未支持的会话类型：{0}</value>
+  </data>
+
+  <!-- ============ 可恢复异常提示（P0-2 / 规格 4.7）============
+       显示在顶部非模态提示条，只保留最新一条。
+       框架异常的英文原文不在这里显示 —— 它进日志。 -->
+  <data name="ErrorNotice.Title" xml:space="preserve">
+    <value>出错了</value>
+  </data>
+  <data name="ErrorNotice.Dismiss" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="ErrorKind.Unknown" xml:space="preserve">
+    <value>操作失败。详细原因请查看日志文件。</value>
+  </data>
+  <data name="ErrorKind.PortNotFound" xml:space="preserve">
+    <value>找不到这个串口。可能已被拔出，或端口名不对。</value>
+  </data>
+  <data name="ErrorKind.AccessDenied" xml:space="preserve">
+    <value>端口正被其他程序占用，或当前账户没有打开它的权限。</value>
+  </data>
+  <data name="ErrorKind.DeviceRemoved" xml:space="preserve">
+    <value>设备已断开。重新插好后再连接一次。</value>
+  </data>
+  <data name="ErrorKind.Timeout" xml:space="preserve">
+    <value>端口在规定时间内没有响应。</value>
+  </data>
+  <data name="ErrorKind.NotConnected" xml:space="preserve">
+    <value>请先连接端口再发送。</value>
+  </data>
+  <data name="ErrorKind.InvalidInput" xml:space="preserve">
+    <value>待发送的内容无法解析。HEX 模式下请成对使用 0-9 / A-F，例如：01 03 00 00。</value>
+  </data>
+  <data name="ErrorKind.IntervalTooSmall" xml:space="preserve">
+    <value>定时发送的间隔太短。最小允许 20 ms；间隔未被改动。</value>
+    <comment>Must say the value was NOT changed — refuse, never clamp.</comment>
+  </data>
+  <data name="ErrorKind.NothingToSend" xml:space="preserve">
+    <value>没有可发送的内容。请输入要重复发送的内容，或从历史指令里选一条。</value>
+    <comment>P2-50 (2). Must name a way forward: a successful send empties the box, so this is the end of a normal workflow, not a corner case.</comment>
+  </data>
+  <data name="ErrorKind.LineError" xml:space="preserve">
+    <value>串口线路报告了错误（校验错、帧错或溢出）。收到的数据可能不正确 —— 请核对波特率、校验位与停止位是否与设备一致。</value>
+  </data>
+  <data name="ErrorKind.RecordingFailed" xml:space="preserve">
+    <value>记录已停止：帧写入失败。请检查磁盘剩余空间，以及记录数据库是否可写。</value>
+  </data>
+
+  <!-- ============ 新建会话时打不开端口（对话框内提示，01-spec 4.7）============ -->
+  <data name="Dialog.NewSession.OpenFailed.Terminal" xml:space="preserve">
+    <value>无法打开 {0}：{1}请检查后重试。</value>
+    <comment>在新建会话对话框内显示。对话框保持打开，用户改个端口直接重试。{0} 端口名，{1} 由 ErrorKind.* 映射出的分类原因。底层异常原文只进日志，不得写进这里。⚠️ {1} 后面**刻意不加句号** —— 七条 ErrorKind.* 文案全部自带句号结尾，再加就成了「权限。。」。2026-07-30 实测撞过。</comment>
+  </data>
+  <data name="Dialog.NewSession.OpenFailed.Monitor" xml:space="preserve">
+    <value>监听会话需要同时打开 2 个串口。通道 {0}（{1}）无法打开：{2}请检查后重试。</value>
+    <comment>监听版本。{0} 通道字母 A 或 B，{1} 端口名，{2} 分类原因。必须说清是哪一路 —— 不说的话用户不知道该改哪个下拉框。⚠️ 端口是顺序打开的，所以「两个都失败」表现为通道 A（B 根本没被尝试过）。⚠️ 用「监听」不用「监控」：功能名按 01-spec 原则 2 定为「串口监听」。</comment>
+  </data>
+
+  <!-- ============ 枚举显示名 ============ -->
+  <data name="Enum.DisplayFormat.Ascii" xml:space="preserve">
+    <value>ASCII</value>
+  </data>
+  <data name="Enum.DisplayFormat.Hex" xml:space="preserve">
+    <value>HEX</value>
+    <comment>Was "十六进制" until 2026-08-02. Kept untranslated so the display dropdown and the send area's HEX radio button read the same on one screen (P2-23), and to match the "do not translate protocol abbreviations" rule in 03-conventions 2.7 — which this entry used to contradict.</comment>
+  </data>
+  <data name="Enum.DisplayFormat.HexAndAscii" xml:space="preserve">
+    <value>HEX + ASCII</value>
+    <comment>See Enum.DisplayFormat.Hex.</comment>
+  </data>
+
+  <data name="Enum.TimestampMode.None" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Enum.TimestampMode.Absolute" xml:space="preserve">
+    <value>绝对时间</value>
+  </data>
+  <data name="Enum.TimestampMode.Relative" xml:space="preserve">
+    <value>相对时间</value>
+  </data>
+
+  <data name="Enum.SerialParity.None" xml:space="preserve">
+    <value>None</value>
+    <comment>⛔ Deliberately NOT translated -- user decision 2026-08-05 (P2-68, option B). The
+    parity dropdown is kept wholly English because Mark and Space have no settled Chinese
+    rendering; translating three of five was the state this decision replaced. ⚠️ Do not
+    "fix" this back to 无 on its own -- the criterion is that the five values agree with
+    each other, so any change here is a change to all five.
+    ⭐ 2026-08-07 UPDATE -- a SECOND criterion now also holds, and it points the same way:
+    flow control and line ending were changed from 无 to None on that date, so all four
+    serial-parameter dropdowns are wholly English. Translating parity now would break
+    agreement BETWEEN controls as well as leave Mark/Space untranslatable. ⚠️ The earlier
+    note above said this dropdown was the odd one out; it no longer is -- it was the one
+    the others were brought into line WITH.</comment>
+  </data>
+  <data name="Enum.SerialParity.Odd" xml:space="preserve">
+    <value>Odd</value>
+    <comment>Kept English with the rest of the parity dropdown -- see Enum.SerialParity.None.</comment>
+  </data>
+  <data name="Enum.SerialParity.Even" xml:space="preserve">
+    <value>Even</value>
+    <comment>Kept English with the rest of the parity dropdown -- see Enum.SerialParity.None.</comment>
+  </data>
+  <data name="Enum.SerialParity.Mark" xml:space="preserve">
+    <value>Mark</value>
+  </data>
+  <data name="Enum.SerialParity.Space" xml:space="preserve">
+    <value>Space</value>
+  </data>
+
+  <data name="Enum.SerialStopBits.One" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="Enum.SerialStopBits.OnePointFive" xml:space="preserve">
+    <value>1.5</value>
+  </data>
+  <data name="Enum.SerialStopBits.Two" xml:space="preserve">
+    <value>2</value>
+  </data>
+
+  <data name="Enum.SerialFlowControl.None" xml:space="preserve">
+    <value>None</value>
+    <comment>⛔ Deliberately NOT translated -- user decision 2026-08-07. It read 无 until then,
+    which made the SAME WORD render differently in two adjacent dropdowns: parity showed
+    None (P2-68, option B) while flow control one row below showed 无. ⭐ The rule this
+    settles: SERIAL PARAMETER enums stay English in every language; UI PROSE is translated.
+    See spec 4.x "串口参数类枚举不译" for the boundary. ⚠️ This REVERSES the "译词、不译标识符"
+    reasoning recorded in P2-68 (无 is a word, so that rule said translate it). The user
+    overrode it on audience grounds -- engineers read these five terms in English -- which
+    is information that rule never weighed. Do not re-argue it without new information.</comment>
+  </data>
+  <data name="Enum.SerialFlowControl.RequestToSend" xml:space="preserve">
+    <value>RTS / CTS</value>
+  </data>
+  <data name="Enum.SerialFlowControl.XOnXOff" xml:space="preserve">
+    <value>XON / XOFF</value>
+  </data>
+
+  <data name="Enum.LineEnding.None" xml:space="preserve">
+    <value>None</value>
+    <comment>⛔ Deliberately NOT translated -- same 2026-08-07 decision as
+    Enum.SerialFlowControl.None; read that comment for the rule and its cost. This dropdown
+    is now wholly English (None / CR / LF / CRLF), matching parity and flow control.</comment>
+  </data>
+  <data name="Enum.LineEnding.Cr" xml:space="preserve">
+    <value>CR</value>
+  </data>
+  <data name="Enum.LineEnding.Lf" xml:space="preserve">
+    <value>LF</value>
+  </data>
+  <data name="Enum.LineEnding.CrLf" xml:space="preserve">
+    <value>CRLF</value>
+  </data>
+</root>

@@ -1,0 +1,661 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!--
+    Japanese (ja). Added 2026-08-06.
+
+    ⚠️ Comments here are in English on purpose. 03-conventions 2.0 permits a satellite file's
+    translator notes to be written in the language of that file, because its reader is by
+    definition a translator of that language — zh-Hans uses that. This file is different: it was
+    produced without a native reviewer, so its notes have to stay auditable by everyone who can
+    read the neutral file. ⛔ A native review is still owed; see 00-STATUS Q-10.
+
+    ⚠️ Keys deliberately left identical to the neutral file are marked. Every one of them is a
+    technical token (ASCII, HEX, CR/LF, RTS/CTS, TX/RX, ms, Δms) or the product name — the same
+    treatment the other two languages give them.
+  -->
+
+  <!-- ============ Common ============ -->
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="Common.Ok" xml:space="preserve">
+    <value>OK</value>
+    <comment>Same in every language: OK is standard on Japanese dialog buttons.</comment>
+  </data>
+  <data name="Common.Next" xml:space="preserve">
+    <value>次へ</value>
+  </data>
+
+  <!-- ============ Application ============ -->
+  <data name="App.Name" xml:space="preserve">
+    <value>diSerial</value>
+    <comment>Product name -- never translated.</comment>
+  </data>
+  <data name="App.TitleWithSession" xml:space="preserve">
+    <value>diSerial — {0}</value>
+    <comment>{0} = the session title (Session.Terminal.Title / Session.Monitor.Title).</comment>
+  </data>
+  <data name="App.TitleDeveloperMode" xml:space="preserve">
+    <value>{0}  ⚠ 開発モード — データはシミュレーションの可能性があります</value>
+    <comment>{0} = the whole title built above. Developer-form suffix; never shipped to users, but it sits next to a localized title so it is localized too (03-conventions 2.1).</comment>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>準備完了 — セッションが開かれていません</value>
+  </data>
+
+  <!-- ============ Menus ============
+       ⛔ No mnemonics in any language (user decision 2026-08-02). An underscore followed by a
+       letter is caught by ResourceWordingTests.MenuTitlesDeclareNoMnemonics.
+  -->
+  <data name="Menu.File" xml:space="preserve">
+    <value>ファイル</value>
+  </data>
+  <data name="Menu.File.NewSession" xml:space="preserve">
+    <value>新規セッション...</value>
+  </data>
+  <data name="Menu.File.CloseSession" xml:space="preserve">
+    <value>セッションを閉じる</value>
+  </data>
+  <data name="Menu.File.Exit" xml:space="preserve">
+    <value>終了</value>
+  </data>
+  <data name="Menu.Session" xml:space="preserve">
+    <value>セッション</value>
+  </data>
+  <data name="Menu.Session.Connect" xml:space="preserve">
+    <value>接続</value>
+  </data>
+  <data name="Menu.Session.Disconnect" xml:space="preserve">
+    <value>切断</value>
+  </data>
+  <data name="Menu.Session.Pause" xml:space="preserve">
+    <value>受信を一時停止</value>
+  </data>
+  <data name="Menu.Session.Resume" xml:space="preserve">
+    <value>受信を再開</value>
+  </data>
+  <data name="Menu.Session.Clear" xml:space="preserve">
+    <value>表示をクリア</value>
+  </data>
+  <data name="Menu.Session.Record" xml:space="preserve">
+    <value>記録の開始 / 停止</value>
+  </data>
+  <data name="Menu.Edit" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="Menu.Edit.Find" xml:space="preserve">
+    <value>検索...</value>
+  </data>
+  <data name="Menu.Edit.Filter" xml:space="preserve">
+    <value>フィルター...</value>
+  </data>
+  <data name="Menu.View" xml:space="preserve">
+    <value>表示</value>
+  </data>
+  <data name="Menu.View.MergedTimeline" xml:space="preserve">
+    <value>統合タイムライン</value>
+  </data>
+  <data name="Menu.View.Split" xml:space="preserve">
+    <value>分割表示</value>
+  </data>
+  <data name="Menu.Tools" xml:space="preserve">
+    <value>ツール</value>
+  </data>
+  <data name="Menu.Tools.Export" xml:space="preserve">
+    <value>表示内容をエクスポート...</value>
+  </data>
+  <data name="Menu.Language" xml:space="preserve">
+    <value>言語：{0}</value>
+    <comment>{0} = name of the current language, written in that language itself (e.g. "English", "日本語"). Parentheses match the English form; Japanese menus commonly use them and no mnemonic competes for the space (mnemonics were removed 2026-08-02).</comment>
+  </data>
+  <data name="Menu.Help" xml:space="preserve">
+    <value>ヘルプ</value>
+  </data>
+  <data name="Menu.Help.About" xml:space="preserve">
+    <value>diSerial について</value>
+  </data>
+
+  <!-- ============ Toolbar ============ -->
+  <data name="Toolbar.Connect" xml:space="preserve">
+    <value>接続</value>
+  </data>
+  <data name="Toolbar.Disconnect" xml:space="preserve">
+    <value>切断</value>
+  </data>
+  <data name="Toolbar.StartMonitoring" xml:space="preserve">
+    <value>モニタリング開始</value>
+  </data>
+  <data name="Toolbar.Stop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="Toolbar.Clear" xml:space="preserve">
+    <value>クリア</value>
+  </data>
+  <data name="Toolbar.Pause" xml:space="preserve">
+    <value>一時停止</value>
+  </data>
+  <data name="Toolbar.Resume" xml:space="preserve">
+    <value>再開</value>
+  </data>
+  <data name="Toolbar.Record" xml:space="preserve">
+    <value>記録</value>
+  </data>
+  <data name="Toolbar.StopRecord" xml:space="preserve">
+    <value>記録を停止</value>
+  </data>
+  <data name="Toolbar.Export" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="Toolbar.Display" xml:space="preserve">
+    <value>表示形式</value>
+  </data>
+  <data name="Toolbar.Timestamp" xml:space="preserve">
+    <value>タイムスタンプ</value>
+  </data>
+
+  <!-- ============ Export dialog ============ -->
+  <data name="Dialog.Export.Title" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="Dialog.Export.Format" xml:space="preserve">
+    <value>ファイルの種類</value>
+    <comment>Deliberately "file type", not "data format": .tsv and .txt hold identical content (tab separated, one frame per line) and differ only in extension. Calling it a data format would suggest the data itself differs.</comment>
+  </data>
+  <data name="Dialog.Export.SaveTo" xml:space="preserve">
+    <value>保存先</value>
+  </data>
+  <data name="Dialog.Export.Browse" xml:space="preserve">
+    <value>参照…</value>
+  </data>
+  <data name="Dialog.Export.Confirm" xml:space="preserve">
+    <value>エクスポート</value>
+  </data>
+  <data name="Enum.ExportFormat.Tsv" xml:space="preserve">
+    <value>タブ区切り (.tsv)</value>
+  </data>
+  <data name="Enum.ExportFormat.Csv" xml:space="preserve">
+    <value>カンマ区切り (.csv)</value>
+  </data>
+
+  <!-- ============ Display settings ============ -->
+  <data name="Toolbar.ShowChannel" xml:space="preserve">
+    <value>チャネル</value>
+  </data>
+  <data name="Toolbar.ShowDelta" xml:space="preserve">
+    <value>Δms</value>
+    <comment>Same in every language: a unit symbol.</comment>
+  </data>
+  <data name="Toolbar.DisplaySettings" xml:space="preserve">
+    <value>表示設定</value>
+  </data>
+  <data name="Toolbar.ShowSent" xml:space="preserve">
+    <value>送信済み</value>
+    <comment>Send-area checkbox (terminal session only) that shows/hides locally sent lines -- T-05, spec 4.12. It hides ROWS, not a column, so avoid wording that suggests a column. ⚠️ Spelled out rather than a bare 送信, for the same reason zh-Hans is: the Send button one row below reads 送信, and a bare 送信 here would be one word appearing twice in one panel with two different meanings. ⚠️ This row is a WrapPanel -- overflow does not clip, it silently wraps and makes the send area taller (spec 4.14). Measured 2026-08-06: Japanese adds roughly 25px over Chinese across this row, against ~378px of measured spare.</comment>
+  </data>
+
+  <!-- ============ Log columns ============ -->
+  <data name="Log.Column.Time" xml:space="preserve">
+    <value>時刻</value>
+  </data>
+  <data name="Log.Column.Delta" xml:space="preserve">
+    <value>Δms</value>
+    <comment>Same in every language: a unit symbol.</comment>
+  </data>
+  <data name="Log.Column.Channel" xml:space="preserve">
+    <value>チャネル</value>
+  </data>
+  <data name="Log.Column.Data" xml:space="preserve">
+    <value>データ</value>
+  </data>
+
+  <!-- ============ Channels ============ -->
+  <data name="Channel.Header" xml:space="preserve">
+    <value>チャネル</value>
+  </data>
+  <data name="Channel.AliasPlaceholder" xml:space="preserve">
+    <value>{0} のエイリアス</value>
+    <comment>{0} = port name, e.g. "COM6 のエイリアス".</comment>
+  </data>
+  <data name="Channel.BytesReceived" xml:space="preserve">
+    <value>受信バイト数</value>
+  </data>
+  <data name="Channel.TimestampNote" xml:space="preserve">
+    <value>タイムスタンプはソフトウェア側で取得しており、USB のポーリング周期と OS のスケジューリングの影響を受けます。ハードウェアによるマイクロ秒精度のタイムスタンプではありません。</value>
+    <comment>⚠️ This is a limitation the product states plainly; do not soften it. The claim it prevents is "microsecond accurate", which the design cannot support.</comment>
+  </data>
+  <data name="Channel.PortWithAlias" xml:space="preserve">
+    <value>{0}「{1}」</value>
+    <comment>{0} = port name, {1} = user-supplied alias. Used ONLY when the user has renamed the channel; before that the port name is shown alone, because the alias defaults to the port name. Japanese corner brackets 「」 are the local equivalent of the English quotes.</comment>
+  </data>
+
+  <!-- ============ Frame rows: channel / direction column (P2-69) ============
+       ⛔ All four identical to the neutral file on purpose. TX and RX are the universal serial
+       abbreviations. Being in resources is still the point: translating them later becomes a
+       data change instead of another code sweep.
+  -->
+  <data name="Frame.Direction.Rx" xml:space="preserve">
+    <value>← RX</value>
+  </data>
+  <data name="Frame.Direction.Tx" xml:space="preserve">
+    <value>→ TX</value>
+  </data>
+  <data name="Frame.Channel.Observed" xml:space="preserve">
+    <value>{0} →</value>
+    <comment>{0} = channel label ("COM6" or "COM6 · PLC"). Observed on the bus.</comment>
+  </data>
+  <data name="Frame.Channel.Injected" xml:space="preserve">
+    <value>TX → {0}</value>
+    <comment>{0} = channel label. Injected by us (M-09). ⚠️ Keep the TX marker first (P1-32): an injected frame has to be recognisable at a glance, and breaking the column alignment is the point.</comment>
+  </data>
+
+  <!-- ============ Send panel ============ -->
+  <data name="Send.DisabledWarning" xml:space="preserve">
+    <value>モニターモードでは送信が無効になっています。チャネルへの書き込みは、稼働中のバスに実データを注入することになります。</value>
+  </data>
+  <data name="Send.EnableSend" xml:space="preserve">
+    <value>送信を有効にする</value>
+  </data>
+  <data name="Send.LineEnding" xml:space="preserve">
+    <value>改行コード</value>
+  </data>
+  <data name="Send.Placeholder" xml:space="preserve">
+    <value>送信するデータを入力</value>
+    <comment>⚠️ Kept short deliberately: this is the input box that occupies its own row, but a long placeholder still reads as clutter in a tool used at a glance.</comment>
+  </data>
+  <data name="Send.Button" xml:space="preserve">
+    <value>送信</value>
+  </data>
+  <data name="Send.FormatAscii" xml:space="preserve">
+    <value>ASCII</value>
+    <comment>Same in every language: a technical token.</comment>
+  </data>
+  <data name="Send.FormatHex" xml:space="preserve">
+    <value>HEX</value>
+    <comment>Same in every language: a technical token.</comment>
+  </data>
+  <data name="Send.History" xml:space="preserve">
+    <value>送信履歴</value>
+    <comment>PlaceholderText of the send-history dropdown (T-03a). Picking an entry only fills the input box and restores its ASCII/HEX mode; it does not send. ⚠️ This is the dropdown's permanent resting text, not a transient hint, so it doubles as the control's label -- that is why no separate label sits beside it.</comment>
+  </data>
+  <data name="Send.HistoryRemove" xml:space="preserve">
+    <value>×</value>
+    <comment>Same in every language: a symbol.</comment>
+  </data>
+  <data name="Send.HistoryClear" xml:space="preserve">
+    <value>履歴をすべて削除</value>
+  </data>
+  <data name="Send.HistoryRemoveTip" xml:space="preserve">
+    <value>この項目を保存済み履歴から削除します</value>
+  </data>
+  <data name="Signal.Dtr" xml:space="preserve">
+    <value>DTR</value>
+  </data>
+  <data name="Signal.Rts" xml:space="preserve">
+    <value>RTS</value>
+  </data>
+  <data name="Signal.Cts" xml:space="preserve">
+    <value>CTS</value>
+  </data>
+  <data name="Signal.Dsr" xml:space="preserve">
+    <value>DSR</value>
+  </data>
+  <data name="Signal.Dcd" xml:space="preserve">
+    <value>DCD</value>
+  </data>
+  <data name="Signal.Panel" xml:space="preserve">
+    <value>シリアル信号</value>
+  </data>
+  <data name="Signal.Outputs" xml:space="preserve">
+    <value>出力</value>
+  </data>
+  <data name="Signal.Inputs" xml:space="preserve">
+    <value>入力</value>
+  </data>
+  <data name="Signal.StateHigh" xml:space="preserve">
+    <value>オン</value>
+  </data>
+  <data name="Signal.StateLow" xml:space="preserve">
+    <value>オフ</value>
+  </data>
+  <data name="Signal.StateUnknown" xml:space="preserve">
+    <value>不明</value>
+  </data>
+  <data name="Signal.RtsOwnedByFlowControl" xml:space="preserve">
+    <value>（フロー制御で使用中）</value>
+  </data>
+  <data name="Send.TimedSend" xml:space="preserve">
+    <value>定期送信</value>
+  </data>
+  <data name="Send.Interval" xml:space="preserve">
+    <value>間隔</value>
+  </data>
+  <data name="Send.IntervalUnit" xml:space="preserve">
+    <value>ms</value>
+    <comment>Same in every language: a unit symbol.</comment>
+  </data>
+  <data name="Send.TimedStart" xml:space="preserve">
+    <value>開始</value>
+  </data>
+  <data name="Send.TimedStop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+
+  <!-- ============ Confirmations ============ -->
+  <data name="Session.CloseWhileRecording.Title" xml:space="preserve">
+    <value>記録中です</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Message" xml:space="preserve">
+    <value>このセッションを閉じると記録が停止します。記録済みのデータはデータベースに残りますが、エクスポートファイルは作成されません。ファイルが必要な場合は、キャンセルして先に「記録を停止」を押してください。</value>
+  </data>
+  <data name="Session.CloseWhileRecording.Confirm" xml:space="preserve">
+    <value>停止して閉じる</value>
+  </data>
+  <data name="Send.HistoryClear.Title" xml:space="preserve">
+    <value>送信履歴を削除</value>
+  </data>
+  <data name="Send.HistoryClear.Message" xml:space="preserve">
+    <value>保存済みのコマンド {0} 件をすべて削除します。リストに表示されていないものも含まれます。この操作は取り消せません。</value>
+    <comment>{0} = number of saved commands, including the ones the list does not show.</comment>
+  </data>
+  <data name="Send.HistoryClear.Confirm" xml:space="preserve">
+    <value>すべて削除</value>
+  </data>
+  <data name="Send.HistoryClear.Failed" xml:space="preserve">
+    <value>履歴を削除できませんでした。データはディスク上に残っています。</value>
+  </data>
+
+  <!-- ============ New-session dialog ============ -->
+  <data name="Dialog.NewSession.Title" xml:space="preserve">
+    <value>新規セッション</value>
+  </data>
+  <data name="Dialog.NewSession.SelectType" xml:space="preserve">
+    <value>セッションの種類を選択</value>
+  </data>
+  <data name="Dialog.NewSession.Terminal" xml:space="preserve">
+    <value>シリアルターミナル</value>
+  </data>
+  <data name="Dialog.NewSession.TerminalDesc" xml:space="preserve">
+    <value>シリアルポートを 1 つ開いて、データを送受信します。</value>
+  </data>
+  <data name="Dialog.NewSession.Monitor" xml:space="preserve">
+    <value>シリアルモニター</value>
+  </data>
+  <data name="Dialog.NewSession.MonitorDesc" xml:space="preserve">
+    <value>シリアルポートを 2 つ開き、既存の通信を妨げずに双方向のトラフィックを観測します。</value>
+    <comment>⛔ Do NOT write that diSerial offers to create a monitor session when a device is plugged in. That behaviour (M-02) was removed on 2026-07-29 and the wrong promise shipped in two languages (P1-27). ResourceWordingTests.NoBannedWordingInUserVisibleText guards the two phrasings it shipped as.</comment>
+  </data>
+  <data name="Dialog.NewSession.MonitorRequires" xml:space="preserve">
+    <value>任意のシリアルポートが 2 つ必要です</value>
+    <comment>⚠️ "any two" is load-bearing: monitoring works with any two serial ports, not only with our own hardware (01-spec principle 2).</comment>
+  </data>
+  <data name="Dialog.NewSession.Port" xml:space="preserve">
+    <value>ポート</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelA" xml:space="preserve">
+    <value>チャネル A</value>
+  </data>
+  <data name="Dialog.NewSession.ChannelB" xml:space="preserve">
+    <value>チャネル B</value>
+  </data>
+  <data name="Serial.BaudRate" xml:space="preserve">
+    <value>ボーレート</value>
+  </data>
+  <data name="Serial.DataBits" xml:space="preserve">
+    <value>データビット</value>
+  </data>
+  <data name="Serial.Parity" xml:space="preserve">
+    <value>パリティ</value>
+  </data>
+  <data name="Serial.StopBits" xml:space="preserve">
+    <value>ストップビット</value>
+  </data>
+  <data name="Serial.FlowControl" xml:space="preserve">
+    <value>フロー制御</value>
+  </data>
+
+  <!-- ============ Session titles and status ============ -->
+  <data name="Session.Terminal.Title" xml:space="preserve">
+    <value>{0} ターミナル</value>
+    <comment>{0} = port name.</comment>
+  </data>
+  <data name="Session.Monitor.Title" xml:space="preserve">
+    <value>{0} ↔ {1} モニター</value>
+    <comment>{0} and {1} = the two channel labels.</comment>
+  </data>
+  <data name="Session.Terminal.Status" xml:space="preserve">
+    <value>{0} · {1} · {2} · フレーム {3} · {4} B</value>
+    <comment>{0} = port name, {1} = port settings (e.g. 115200 8N1), {2} = connection state, {3} = frame count, {4} = byte count. ⚠️ {1} is produced by SerialPortSettings.ShortDescription and is never translated.</comment>
+  </data>
+  <data name="Session.Monitor.Status" xml:space="preserve">
+    <value>{0}↓{1} · {2}↓{3} · {4} · {5} · フレーム {6}</value>
+    <comment>{0}/{2} = channel labels, {1}/{3} = bytes received on each, {4} = port settings, {5} = connection state, {6} = frame count.</comment>
+  </data>
+
+  <!-- ============ Connection state ============ -->
+  <data name="State.Connected" xml:space="preserve">
+    <value>接続済み</value>
+  </data>
+  <data name="State.Connecting" xml:space="preserve">
+    <value>接続中</value>
+  </data>
+  <data name="State.Faulted" xml:space="preserve">
+    <value>エラー</value>
+  </data>
+  <data name="State.Disconnected" xml:space="preserve">
+    <value>未接続</value>
+  </data>
+  <data name="State.Monitoring" xml:space="preserve">
+    <value>モニタリング中</value>
+  </data>
+  <data name="State.DisplayPaused" xml:space="preserve">
+    <value>{0} · 表示一時停止中</value>
+    <comment>{0} = the connection state. ⚠️ This is APPENDED, never a replacement: capture, counters and recording all keep running while the display is paused (spec 4.2a). Replacing the state with "paused" would say the opposite of what is happening.</comment>
+  </data>
+  <data name="State.Recording" xml:space="preserve">
+    <value>{0} · 記録中</value>
+    <comment>{0} = the connection state. Appended, same rule as State.DisplayPaused.</comment>
+  </data>
+  <data name="State.NotStarted" xml:space="preserve">
+    <value>未開始</value>
+  </data>
+
+  <!-- ============ Platform ============ -->
+  <data name="Platform.MacOsNotImplemented" xml:space="preserve">
+    <value>macOS のシリアルポート対応は開発中です（V1.1 で対応予定）。</value>
+  </data>
+  <data name="Platform.Unknown" xml:space="preserve">
+    <value>このプラットフォームではシリアルポートに対応していません。</value>
+  </data>
+
+  <!-- ============ Injection warning (M-09) ============ -->
+  <data name="Injection.Title" xml:space="preserve">
+    <value>送信を有効にしますか？</value>
+  </data>
+  <data name="Injection.Message" xml:space="preserve">
+    <value>モニター中のチャネルへ送信すると、バスに実データが注入され、稼働中の機器に影響を与えるおそれがあります。
+
+対象のバスが注入されたトラフィックを安全に受け入れられると確信できる場合のみ続行してください。</value>
+    <comment>⚠️ This is the safety gate for M-09. Do not soften it, and keep the two-paragraph shape: the first states what happens, the second states the condition for proceeding.</comment>
+  </data>
+  <data name="Injection.Confirm" xml:space="preserve">
+    <value>理解しました。送信を有効にする</value>
+  </data>
+
+  <!-- ============ About ============ -->
+  <data name="About.Title" xml:space="preserve">
+    <value>diSerial について</value>
+  </data>
+  <data name="About.Message" xml:space="preserve">
+    <value>diSerial — 無料・オープンソースのシリアル通信ツール
+
+V{0}。セッションは 2 種類です。1 台の機器と通信するシリアルターミナルと、2 台の機器のやり取りを 2 ポートで受動的に観測するシリアルモニター。DSD TECH diDatatracker の公式対応ソフトウェアとして作られていますが、その機器に限定されません。
+
+DongGuan DESHIDE TECHNOLOGY CO.,LTD
+www.deshide.com    dsd_tech@outlook.com
+
+"DSD TECH" is a registered trademark of DongGuan DESHIDE TECHNOLOGY CO.,LTD.
+完全な記載は実行ファイルと同じ場所にある NOTICE ファイルにあります。</value>
+    <comment>{0} = application version, e.g. 1.0.0. ⚠️ The ONLY resource value allowed to contain the product name diDatatracker (01-spec principle 2) -- the feature is called serial monitoring and works with any two ports.</comment>
+  </data>
+
+  <!-- ============ Decoder summaries ============ -->
+  <data name="Decoder.Modbus.IllegalDataAddress" xml:space="preserve">
+    <value>例外コード 02: 不正なデータアドレス</value>
+    <comment>Modbus RTU exception code 02. ⚠️ Keep the number: engineers look these up by code.</comment>
+  </data>
+
+  <!-- ============ Errors ============ -->
+  <data name="Error.UnsupportedSessionKind" xml:space="preserve">
+    <value>未対応のセッション種別: {0}</value>
+    <comment>{0} = the session kind that could not be opened, as its enum name (e.g. Terminal, Monitor) -- NOT a translated word, so do not add quotes or particles that assume one. This is a should-never-happen guard.</comment>
+  </data>
+  <data name="ErrorNotice.Title" xml:space="preserve">
+    <value>問題が発生しました</value>
+  </data>
+  <data name="ErrorNotice.Dismiss" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="ErrorKind.Unknown" xml:space="preserve">
+    <value>操作に失敗しました。詳細はログファイルを確認してください。</value>
+  </data>
+  <data name="ErrorKind.PortNotFound" xml:space="preserve">
+    <value>そのシリアルポートは存在しません。取り外されたか、ポート名が誤っている可能性があります。</value>
+  </data>
+  <data name="ErrorKind.AccessDenied" xml:space="preserve">
+    <value>ポートが他のプログラムで使用中か、開く権限がありません。</value>
+  </data>
+  <data name="ErrorKind.DeviceRemoved" xml:space="preserve">
+    <value>デバイスが取り外されました。接続し直してから、もう一度「接続」してください。</value>
+  </data>
+  <data name="ErrorKind.Timeout" xml:space="preserve">
+    <value>ポートが時間内に応答しませんでした。</value>
+  </data>
+  <data name="ErrorKind.NotConnected" xml:space="preserve">
+    <value>送信する前にポートへ接続してください。</value>
+  </data>
+  <data name="ErrorKind.InvalidInput" xml:space="preserve">
+    <value>送信するテキストを解釈できませんでした。HEX モードでは 0-9 / A-F を 2 桁ずつ入力してください。例: 01 03 00 00。</value>
+  </data>
+  <data name="ErrorKind.IntervalTooSmall" xml:space="preserve">
+    <value>定期送信の間隔が短すぎます。最小値は 20 ms です。間隔は変更されていません。</value>
+  </data>
+  <data name="ErrorKind.NothingToSend" xml:space="preserve">
+    <value>送信する内容がありません。繰り返す内容を入力するか、履歴から選択してください。</value>
+  </data>
+  <data name="ErrorKind.LineError" xml:space="preserve">
+    <value>シリアル回線でエラーが検出されました（パリティ / フレーミング / オーバーラン）。受信データが正しくない可能性があります。ボーレート・パリティ・ストップビットが機器の設定と一致しているか確認してください。</value>
+  </data>
+  <data name="ErrorKind.RecordingFailed" xml:space="preserve">
+    <value>記録を停止しました: フレームを書き込めませんでした。ディスクの空き容量と、記録用データベースが書き込み可能かを確認してください。</value>
+  </data>
+  <data name="Dialog.NewSession.OpenFailed.Terminal" xml:space="preserve">
+    <value>{0} を開けませんでした: {1}ポートを確認してもう一度お試しください。</value>
+    <comment>{0} = port name, {1} = the reason, already localized (one of the ErrorKind.* values above).</comment>
+  </data>
+  <data name="Dialog.NewSession.OpenFailed.Monitor" xml:space="preserve">
+    <value>シリアルモニタリングには 2 つのポートを同時に開く必要があります。チャネル {0}（{1}）を開けませんでした: {2}ポートを確認してもう一度お試しください。</value>
+    <comment>{0} = channel letter (A or B), {1} = port name, {2} = the reason, already localized.</comment>
+  </data>
+
+  <!-- ============ Enum choices ============ -->
+  <data name="Enum.DisplayFormat.Ascii" xml:space="preserve">
+    <value>ASCII</value>
+  </data>
+  <data name="Enum.DisplayFormat.Hex" xml:space="preserve">
+    <value>HEX</value>
+  </data>
+  <data name="Enum.DisplayFormat.HexAndAscii" xml:space="preserve">
+    <value>HEX + ASCII</value>
+  </data>
+  <data name="Enum.TimestampMode.None" xml:space="preserve">
+    <value>オフ</value>
+  </data>
+  <data name="Enum.TimestampMode.Absolute" xml:space="preserve">
+    <value>絶対時刻</value>
+  </data>
+  <data name="Enum.TimestampMode.Relative" xml:space="preserve">
+    <value>相対時刻</value>
+  </data>
+
+  <!-- ⛔ Parity: all five kept in English, following the decision taken for zh-Hans on
+       2026-08-05 (P2-68, option B). Mark and Space have no settled Japanese rendering, and the
+       criterion is that the five values agree with each other — so any change here is a change
+       to all five.
+       ✅ 2026-08-07: the user CONFIRMED this for Japanese, and widened it. The old note here
+       said "not separately confirmed for Japanese; see 00-STATUS Q-10" — that gap is closed.
+       ⭐ The rule is now explicit: serial parameter enums stay English in every language, UI
+       prose is translated. Flow control and line ending moved from なし to None the same day so
+       that all four dropdowns agree; parity is the one they were brought into line WITH.
+       ⭐ Native reviewer: these five need no review. They are English in every language, by
+       decision, and were never translated. -->
+  <data name="Enum.SerialParity.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Enum.SerialParity.Odd" xml:space="preserve">
+    <value>Odd</value>
+  </data>
+  <data name="Enum.SerialParity.Even" xml:space="preserve">
+    <value>Even</value>
+  </data>
+  <data name="Enum.SerialParity.Mark" xml:space="preserve">
+    <value>Mark</value>
+  </data>
+  <data name="Enum.SerialParity.Space" xml:space="preserve">
+    <value>Space</value>
+  </data>
+
+  <data name="Enum.SerialStopBits.One" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="Enum.SerialStopBits.OnePointFive" xml:space="preserve">
+    <value>1.5</value>
+  </data>
+  <data name="Enum.SerialStopBits.Two" xml:space="preserve">
+    <value>2</value>
+  </data>
+
+  <!-- Flow control and line ending: the word is translated, the signal names and control-code
+       mnemonics are not. Same treatment as zh-Hans. -->
+  <data name="Enum.SerialFlowControl.None" xml:space="preserve">
+    <value>None</value>
+    <comment>⛔ Deliberately NOT translated -- user decision 2026-08-07, same change as the
+    zh-Hans file (read that comment for the full rationale). It read なし until then, while
+    parity one row above showed None. ⭐ Serial parameter enums stay English in every
+    language; UI prose is translated. ✅ Native-reviewer note: this REMOVES two words from
+    the review surface rather than adding any -- なし is gone, nothing new was coined.</comment>
+  </data>
+  <data name="Enum.SerialFlowControl.RequestToSend" xml:space="preserve">
+    <value>RTS / CTS</value>
+  </data>
+  <data name="Enum.SerialFlowControl.XOnXOff" xml:space="preserve">
+    <value>XON / XOFF</value>
+  </data>
+  <data name="Enum.LineEnding.None" xml:space="preserve">
+    <value>None</value>
+    <comment>⛔ Deliberately NOT translated -- same 2026-08-07 decision as
+    Enum.SerialFlowControl.None; read that comment. This dropdown is now wholly English
+    (None / CR / LF / CRLF), matching parity and flow control.</comment>
+  </data>
+  <data name="Enum.LineEnding.Cr" xml:space="preserve">
+    <value>CR</value>
+  </data>
+  <data name="Enum.LineEnding.Lf" xml:space="preserve">
+    <value>LF</value>
+  </data>
+  <data name="Enum.LineEnding.CrLf" xml:space="preserve">
+    <value>CRLF</value>
+  </data>
+</root>

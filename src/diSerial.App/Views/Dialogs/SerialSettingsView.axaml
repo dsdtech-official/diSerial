@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:panels="using:DiSerial.App.ViewModels.Panels"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="560"
+             x:Class="DiSerial.App.Views.Dialogs.SerialSettingsView"
+             x:DataType="panels:PortSettingsViewModel">
+
+  <!--
+    Baud rate / data bits / parity / stop bits / flow control (C-04a).
+    V1.0 offers standard baud rates only; custom rates are scheduled for V1.1.
+
+    ⚠ This is shared BETWEEN THE SERIAL SESSION TYPES, not owned by the dialog. It used to sit
+    in NewSessionDialog.axaml and was rendered unconditionally for every type — but these are
+    properties of a serial port, not of a session. A non-serial session type would have had to
+    show a baud rate it has no use for. Each serial config view now includes this explicitly.
+
+    ⚠ Label column uses Auto + SharedSizeGroup rather than a fixed pixel width: German labels
+    run 30–40% longer than English and a fixed width truncates them. The scope is declared by
+    the hosting config view (Grid.IsSharedSizeScope).
+  -->
+
+  <Grid RowDefinitions="Auto,10,Auto,10,Auto">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="12" />
+      <ColumnDefinition Width="Auto" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Translate Serial.BaudRate}"
+               VerticalAlignment="Center" Margin="0,0,10,0" />
+    <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding BaudRates}"
+              SelectedItem="{Binding BaudRate}" />
+    <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Translate Serial.DataBits}"
+               VerticalAlignment="Center" Margin="0,0,10,0" />
+    <ComboBox Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding DataBitsOptions}"
+              SelectedItem="{Binding DataBits}" />
+
+    <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Translate Serial.Parity}"
+               VerticalAlignment="Center" Margin="0,0,10,0" />
+    <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding ParityChoices}"
+              SelectedValue="{Binding Parity}"
+              SelectedValueBinding="{Binding Value}"
+              DisplayMemberBinding="{Binding DisplayName}" />
+    <TextBlock Grid.Row="2" Grid.Column="3" Text="{loc:Translate Serial.StopBits}"
+               VerticalAlignment="Center" Margin="0,0,10,0" />
+    <ComboBox Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding StopBitsChoices}"
+              SelectedValue="{Binding StopBits}"
+              SelectedValueBinding="{Binding Value}"
+              DisplayMemberBinding="{Binding DisplayName}" />
+
+    <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Translate Serial.FlowControl}"
+               VerticalAlignment="Center" Margin="0,0,10,0" />
+    <ComboBox Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
+              ItemsSource="{Binding FlowControlChoices}"
+              SelectedValue="{Binding FlowControl}"
+              SelectedValueBinding="{Binding Value}"
+              DisplayMemberBinding="{Binding DisplayName}" />
+  </Grid>
+</UserControl>

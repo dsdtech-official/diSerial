@@ -1,0 +1,251 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DiSerial.App.ViewModels"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="680"
+        x:Class="DiSerial.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/diserial.ico"
+        Width="1100" Height="680"
+        MinWidth="820" MinHeight="480"
+        Title="{Binding Title}">
+
+  <DockPanel>
+
+    <!-- 菜单栏。条目按会话类型区分归属（【终】/【监】标记），
+         完整菜单设计见 docs/01-spec.md 第九节 —— 那是长期目标，不是 V1.0 清单。
+         ⚠️ 本文件与那一节当前不一致，这是有意的（决策：暂不实现）。
+         哪些条目归哪个版本仍在梳理中，见 docs/01-spec.md 第六节 6.1；
+         在 6.1 定完之前不要照着第九节往这里补菜单项。
+         全部文案走 {loc:T}，语言切换时即时刷新，无需重启。 -->
+    <Menu DockPanel.Dock="Top">
+      <!-- ⚠️ 刻意没有 InputGesture（P1-29，2026-07-30 删除）。
+           Avalonia 的 MenuItem.InputGesture 只把快捷键文字显示出来，
+           不会注册按键 —— 要真生效得写 <Window.KeyBindings>，而本项目没有。
+           实测：Alt+F 能打开菜单（证明按键通路正常），Ctrl+N 毫无反应。
+           于是那些文字是纯装饰，等于向用户承诺 9 个不存在的快捷键。
+           决定（用户 2026-07-30）：先把显示删掉 —— 比补 KeyBindings 快，而且诚实。
+           要恢复显示，必须同时补上 KeyBindings，两者不可再分开。
+
+           ⚠️ Alt+F4 保留：它是 Windows 原生行为，与 InputGesture 无关，
+           所以它显示的是真的，不属于本次要修的缺陷。 -->
+      <MenuItem Header="{loc:Translate Menu.File}">
+        <MenuItem Header="{loc:Translate Menu.File.NewSession}"
+                  Command="{Binding NewSessionCommand}" />
+        <Separator />
+        <MenuItem Header="{loc:Translate Menu.File.CloseSession}"
+                  Command="{Binding CloseSessionCommand}" />
+        <Separator />
+        <MenuItem Header="{loc:Translate Menu.File.Exit}" InputGesture="Alt+F4" Click="OnExitClick" />
+      </MenuItem>
+
+      <!-- ⚠️ DataContext on the CONTAINER, children bind one level (P1-20, 2026-08-02).
+           ⛔ Do NOT write Command="{Binding ActiveSession.XxxCommand}" here again.
+
+           Why: in the empty state ActiveSession is null, and a binding whose PATH passes
+           through a null node logs one Avalonia.Binding warning per binding, every time it
+           is evaluated. That was 7 warnings at startup and 7 more on every language switch
+           (LocalizedViewModelBase raises OnPropertyChanged(string.Empty), so the whole
+           window re-evaluates) — noise that grows the longer the app is open, in the one
+           channel this project relies on to notice real problems (03-conventions 8.0).
+
+           ⭐ Measured, not reasoned (2026-08-02): Avalonia warns about a null node INSIDE a
+           path, but says nothing about a null DataContext. So handing the container a null
+           DataContext and letting each child bind a single-level path is silent. Baseline 7
+           at startup and 7 per language switch went to 0 and 0; the menu still works — its
+           items still enable/disable correctly and still execute.
+
+           ⚠️ IsVisible does NOT suppress the warning — that was measured too, on the status
+           bar below: it sat on IsVisible="{Binding HasActiveSession}" and still warned. Do
+           not reach for IsEnabled or IsVisible to silence this.
+           Full write-up: 00-STATUS P1-20. -->
+      <MenuItem Header="{loc:Translate Menu.Session}" DataContext="{Binding ActiveSession}">
+        <MenuItem Header="{loc:Translate Menu.Session.Connect}"
+                  Command="{Binding ConnectCommand}" />
+        <MenuItem Header="{loc:Translate Menu.Session.Disconnect}"
+                  Command="{Binding DisconnectCommand}" />
+        <Separator />
+        <!-- P2-99: the label swaps, because this item runs the same TogglePauseCommand as the
+             toolbar button and used to read "Pause receiving" while already paused. It binds up
+             to the window's view model rather than to ActiveSession (this menu's DataContext)
+             so that it still has text when no session is open, where the item is disabled but
+             still shown. Same escape idiom as the language menu below. -->
+        <MenuItem Header="{Binding $parent[Menu].((vm:MainWindowViewModel)DataContext).PauseMenuText}"
+                  Command="{Binding TogglePauseCommand}" />
+        <MenuItem Header="{loc:Translate Menu.Session.Clear}"
+                  Command="{Binding ClearCommand}" />
+        <MenuItem Header="{loc:Translate Menu.Session.Record}"
+                  Command="{Binding ToggleRecordCommand}" />
+      </MenuItem>
+
+      <!-- The Edit and View menus are deliberately absent in V1.0 (user decision 2026-08-06,
+           P2-8 clause 3, option A). Both used to be here with every child IsEnabled="False",
+           so two of the seven top level menus opened onto nothing a user could click.
+
+           Each of the four entries also contradicted 01-spec section 9: Find, Filter and
+           Split are marked [1.2] there, yet the code put their entries on screen anyway,
+           while Merged timeline carried NO marker (which section 9 reads as "V1.0") and was
+           greyed out. Removing both menus settles all four at once.
+
+           They come back when they have something to switch: the View menu needs a second
+           monitor view (Split, channel A only, channel B only, all [1.2]) before a radio
+           group means anything, and Edit needs Copy or Select all. Section 9 now marks both
+           menus [TBD] so their return is a spec change, not a silent one.
+
+           The six resource keys (Menu.Edit, Menu.Edit.Find, Menu.Edit.Filter, Menu.View,
+           Menu.View.MergedTimeline, Menu.View.Split) are kept in all three languages on
+           purpose, with a note on the neutral file: deleting them would throw away
+           translations that are correct and will be needed again. -->
+
+      <!-- 这里曾经有一个「模拟设备插入（开发用）」菜单项，已移除。
+           它是开发用的触发器，而用户永远不需要它 —— 现在改由
+           diserial.dev.json 的 debugMode 直接驱动：
+           合成端口进端口列表，插入提示在启动后自动弹一次。 -->
+      <!-- Same shape as the Session menu above, same reason (P1-20). -->
+      <MenuItem Header="{loc:Translate Menu.Tools}" DataContext="{Binding ActiveSession}">
+        <MenuItem Header="{loc:Translate Menu.Tools.Export}" Command="{Binding ExportCommand}" />
+      </MenuItem>
+
+      <!-- 语言菜单（C-25）。
+           标题带当前语言名（Language (English) / 语言(L)：简体中文）——
+           用户若误切到看不懂的语言，这是他找回来的主要线索。
+           条目由 LanguageMenuItems 驱动，V1.1 追加语种时只需增加资源文件
+           并在 LocalizationService 登记，此处 XAML 无需改动。 -->
+      <MenuItem Header="{Binding LanguageMenuHeader}" ItemsSource="{Binding LanguageMenuItems}">
+        <MenuItem.ItemContainerTheme>
+          <!-- BasedOn 必须写：不继承默认 MenuItem 主题会连模板一起替换掉，
+               结果是下拉项不可见（键盘仍能导航，因此很容易漏掉）。 -->
+          <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
+                        x:DataType="vm:LanguageMenuItemViewModel">
+            <Setter Property="Header" Value="{Binding NativeName}" />
+            <!-- Radio 而非 CheckBox：语言是互斥单选，语义上更准确 -->
+            <Setter Property="ToggleType" Value="Radio" />
+            <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+            <Setter Property="Command"
+                    Value="{Binding $parent[Menu].((vm:MainWindowViewModel)DataContext).SetLanguageCommand}" />
+            <Setter Property="CommandParameter" Value="{Binding Option}" />
+          </ControlTheme>
+        </MenuItem.ItemContainerTheme>
+      </MenuItem>
+
+      <MenuItem Header="{loc:Translate Menu.Help}">
+        <MenuItem Header="{loc:Translate Menu.Help.About}" Command="{Binding ShowAboutCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <!-- 状态栏 -->
+    <Border DockPanel.Dock="Bottom" Padding="10,5"
+            BorderThickness="0,1,0,0"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <Panel>
+        <!-- This was the 7th of P1-20's seven warnings, and the one that proved the point:
+             it already sat on IsVisible="{Binding HasActiveSession}" and warned anyway, so
+             visibility does not stop a binding being evaluated. See the Session menu above.
+
+             ⚠️ The wrapper exists because DataContext and the other bindings on one element
+             resolve against the SAME (new) context — "who decides visibility" would move to
+             the session too. Splitting them keeps that judgement on MainWindowViewModel, so
+             HasActiveSession stays the single answer to "is there a session". -->
+        <Panel IsVisible="{Binding HasActiveSession}">
+          <TextBlock Classes="mono" FontSize="11"
+                     DataContext="{Binding ActiveSession}"
+                     Text="{Binding StatusText}" />
+        </Panel>
+        <TextBlock Classes="mono" FontSize="11"
+                   IsVisible="{Binding !HasActiveSession}"
+                   Text="{loc:Translate Status.Ready}" />
+      </Panel>
+    </Border>
+
+    <!-- 平台限制提示：macOS 上 System.IO.Ports 不可用，提前告知而非运行时崩溃。
+         文本由 App 层依据 Core 返回的状态码映射，Core 不产出本地化字符串。 -->
+    <Border DockPanel.Dock="Top" Padding="12,8" Background="#33BA7517"
+            IsVisible="{Binding HasPlatformWarning}">
+      <TextBlock Text="{Binding PlatformWarning}" TextWrapping="Wrap" FontSize="12" />
+    </Border>
+
+    <!-- 可恢复异常提示（P0-2，规格见 docs/01-spec.md 4.7）。
+         红色系刻意区别于上面两条：黄绿 = 平台限制，蓝 = 信息提示。
+         橙色没有用，那是 M-09 注入警示的颜色，含义完全不同。
+
+         ⚠️ 规格定的是「同时只存在一条 + 常驻直到手动关闭」——
+         不要改成自动消失或堆叠多条，那是两个不同的产品决策。
+
+         绑的是 MainWindowViewModel 自己的属性，不是 ActiveSession.* ——
+         空状态下穿透绑定会产生 Avalonia.Binding 警告（P1-20）。 -->
+    <Border DockPanel.Dock="Top" Padding="12,8" Background="#33D13438"
+            IsVisible="{Binding HasSessionError}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+          <TextBlock Text="{loc:Translate ErrorNotice.Title}" FontWeight="SemiBold" FontSize="13" />
+          <TextBlock Classes="caption" Text="{Binding SessionError}" TextWrapping="Wrap" />
+        </StackPanel>
+        <Button Grid.Column="1" Margin="8,0,0,0"
+                Content="{loc:Translate ErrorNotice.Dismiss}"
+                Command="{Binding DismissSessionErrorCommand}" />
+      </Grid>
+    </Border>
+
+    <!-- ⚠️ 原先此处还有一条蓝色的「双通道设备插入提示」（原 M-02），
+         2026-07-29 整条移除 —— 理由见 IDeviceWatcher 的注释。
+         顶部提示条现在只剩两种：平台限制（黄绿）与会话错误（红，P0-2）。 -->
+
+    <!-- 会话内容区。
+         ⚠️ V1.0 只显示单个会话；V1.1 加标签页时把 ContentControl 换成
+         绑定 Sessions / ActiveSession 的 TabControl 即可，ViewModel 无需改动。 -->
+    <Panel>
+      <ContentControl Content="{Binding ActiveSession}"
+                      IsVisible="{Binding HasActiveSession}" />
+
+      <!--
+        空状态（2026-08-03 用户定：类型选择提到这里）。
+
+        ⭐ 卡片不是「加在说明文字旁边」，是**替换掉**那段说明 —— 原先那段散文
+        用文字解释两种会话类型，与卡片说的是同一件事。Empty.Description 的注释
+        当初就写着「不可与会话类型卡片矛盾」，那处必须靠人保持一致的隐患，
+        从此在结构上不存在了。
+
+        选好类型再点「新建会话」，对话框直接开在第二步 —— 少一次点击。
+        ⚠️ 第一步并没有被删：从「文件」菜单进来时对话框仍从第一步开始，
+        第二步的「上一步」也回得去。
+
+        ⛔ 本文件不得出现任何具体会话类型名 —— 卡片来自 SessionTypes，
+        与对话框第一步同一个来源。NewSessionDialogDecouplingTests 扫这个文件。
+      -->
+      <StackPanel IsVisible="{Binding !HasActiveSession}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Spacing="12" MaxWidth="600">
+        <!-- ⛔ 这里曾有一行 <TextBlock Text="{loc:Translate App.Name}" FontSize="26" />，
+             2026-08-06 用户定去掉 —— 理由是它重复：没有会话时标题栏本来就写着 diSerial
+             （MainWindowViewModel.Title 走 LocKeys.AppName），同一屏上产品名出现两次。
+             ⭐ App.Name 这个键仍然被标题栏用着，没有变成孤儿资源。
+
+             ⚠️ FontSize 18 且刻意不带 Opacity —— 原先是 14 / 0.7，那是压在 26px 大标题
+             下面的「副标题」浓淡。标题一走，这行字成了整块的第一行，还穿着副标题的衣服
+             就会读成一句没人管的说明文字。三版截图比过，用户选的是这一版。 -->
+        <TextBlock Text="{loc:Translate Dialog.NewSession.SelectType}" FontSize="18"
+                   HorizontalAlignment="Center" Margin="0,4,0,4" />
+
+        <ListBox Classes="sessionTypes"
+                 ItemsSource="{Binding SessionTypes}"
+                 SelectedItem="{Binding SelectedSessionType}"
+                 ItemTemplate="{StaticResource SessionTypeCard}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="2" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+        </ListBox>
+
+        <!-- ⭐ CommandParameter 是这里与「文件」菜单唯一的区别：类型刚在上面选过，
+             所以传进去、直接开第二步。菜单那边不传，从第一步开始。 -->
+        <Button Content="{loc:Translate Menu.File.NewSession}" HorizontalAlignment="Center" Margin="0,8,0,0"
+                Command="{Binding NewSessionCommand}"
+                CommandParameter="{Binding SelectedSessionType}" />
+      </StackPanel>
+    </Panel>
+
+  </DockPanel>
+</Window>

@@ -1,0 +1,132 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    表现层：Avalonia + MVVM。
+    只依赖 Core 的接口；Infrastructure 仅在 Composition 中被引用一次，
+    用于把具体实现注册进 DI 容器（组合根模式）。
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>DiSerial.App</RootNamespace>
+    <!--
+      The shipped file is diSerial.exe, not DiSerial.App.exe. "App" is this
+      repository's layer name (App / Core / Infrastructure) and users have no
+      reason to see it. RootNamespace stays DiSerial.App, so no source changes.
+
+      Note for anyone touching this: AssemblyName now equals <Product>, which is
+      exactly what AppMetadataTests used to rely on being different. That guard
+      was rewritten when this changed; see ProductCompanyAndCopyrightAreDeclared.
+    -->
+    <AssemblyName>diSerial</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!--
+      The exe icon, i.e. what File Explorer, the taskbar pin and alt-tab show.
+      This is separate from Window.Icon in MainWindow.axaml (the title bar); both
+      point at the same file on purpose. Sizes inside the .ico: 16/24/32/48/256.
+
+      Assets\** below is an unfiltered glob, so anything dropped into Assets\ gets
+      embedded into the exe. Keep source artwork out of it. The 1202px original
+      lives in assets-source\icon\ at the repository root, which does not ship.
+    -->
+    <ApplicationIcon>Assets\diserial.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <!--
+    Controls/ScrollFollow is internal on purpose - it is a helper for this assembly's
+    controls, not public surface. The tests still have to reach it (P1-9), and widening
+    it to public just for that would advertise it as an API nobody should call.
+    InternalsVisibleTo is the narrower of the two, and it is what the note in
+    tests/.../InjectedFrameTests.cs already pointed at.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="DiSerial.App.Tests" />
+  </ItemGroup>
+
+  <!--
+    开发期配置（diserial.dev.json）—— 随包发布，Debug 与 Release 都复制。
+    两种构建读同一个文件、走同一条分支，差别只在文件里的值，
+    消除了「发布版跑一条开发期没测过的代码路径」这一整类问题。
+
+    文件本身进版本库。本地开着 debugMode: true 用于日常开发，
+    发布前必须改回 false —— 由下方的 CheckDeveloperSwitchesBeforePublish 卡住。
+  -->
+  <!--
+    ⚠️ ExcludeFromSingleFile 与 CopyToPublishDirectory 两条缺一不可（2026-08-03 实测查出）。
+
+    第一次真正跑 dotnet publish（单文件自包含）时发现：**发布目录里根本没有这个文件**，
+    它被打进了 exe。应用于是找不到它、静默退回代码默认值 ——
+    实证是发布版横幅报 developer.logLevel: "info"，而源文件里写的是 "debug"。
+
+    ⛔ 那把本节整个设计前提废掉了：上面写着「两种构建读同一个文件」，
+    而 02-architecture 11.3 ③ 更明确 ——「现场排查时可以直接改发布版旁边的文件来复现问题」。
+    文件进了 exe 就改不了，这条能力等于不存在。
+
+    ⭐ 失败方向是安全的（退回用户形态、不产生模拟数据），**所以它不会崩、不会报错，
+    只会安静地少一个能力** —— 正是「只在发布版才走到」的那类缺陷。
+  -->
+  <ItemGroup>
+    <None Include="diserial.dev.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <!--
+    发布卡点：dotnet publish 时若 diserial.dev.json 还开着开发形态，直接让发布失败。
+
+    背景：文件随包发布之后，「发布时全部关闭」从缺省行为退化成了人工纪律
+    （见 docs/02-architecture.md 11.3 ②）。这个目标把纪律降级成机械保证 ——
+    发出去带模拟端口的版本，对一个测量工具是后果最重的一类错误：
+    用户会拿伪造的总线数据做判断。
+
+    刻意只在 Publish 上卡，不在 Build 上卡 —— 日常开发本来就要开着它。
+  -->
+  <Target Name="CheckDeveloperSwitchesBeforePublish" BeforeTargets="PrepareForPublish">
+    <PropertyGroup>
+      <_DevJsonPath>$(MSBuildProjectDirectory)\diserial.dev.json</_DevJsonPath>
+      <_DevJsonText Condition="Exists('$(_DevJsonPath)')">$([System.IO.File]::ReadAllText('$(_DevJsonPath)'))</_DevJsonText>
+      <!-- 去掉所有空白后再匹配，容忍 "key" : true 这类写法 -->
+      <_DevJsonPacked>$([System.Text.RegularExpressions.Regex]::Replace('$(_DevJsonText)', '\s', ''))</_DevJsonPacked>
+    </PropertyGroup>
+    <Error Condition="$(_DevJsonPacked.Contains('&quot;debugMode&quot;:true'))"
+           Text="diserial.dev.json still has debugMode: true. A published build must not ship developer form - it would show SIMULATED data as if it were real bus traffic. Set it to false and publish again." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <!--
+      Do not add AvaloniaUI.DiagnosticsSupport back. It was removed on 2026-08-09
+      because it declares no license at all, and Avalonia.Diagnostics (MIT) cannot
+      replace it on Avalonia 12.x. See Program.BuildAvaloniaApp and
+      docs/02-architecture.md 11.2.3.
+    -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="$(CommunityToolkitMvvmVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsVersion)" />
+
+    <!--
+      Serilog 是日志的实现，引用点被限制在 Composition/LoggingBootstrap.cs 一处。
+      其余代码只依赖 ILogger<T>，换实现不影响调用点。
+    -->
+    <PackageReference Include="Serilog" Version="$(SerilogVersion)" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="$(SerilogExtensionsLoggingVersion)" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="$(SerilogFormattingCompactVersion)" />
+    <PackageReference Include="Serilog.Sinks.Async" Version="$(SerilogSinksAsyncVersion)" />
+    <PackageReference Include="Serilog.Sinks.File" Version="$(SerilogSinksFileVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\diSerial.Core\diSerial.Core.csproj" />
+    <ProjectReference Include="..\diSerial.Infrastructure\diSerial.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

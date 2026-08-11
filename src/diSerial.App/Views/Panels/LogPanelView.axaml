@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:panels="using:DiSerial.App.ViewModels.Panels"
+             xmlns:controls="using:DiSerial.App.Controls"
+             xmlns:loc="using:DiSerial.App.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="420"
+             x:Class="DiSerial.App.Views.Panels.LogPanelView"
+             x:DataType="panels:LogPanelViewModel">
+
+  <!--
+    数据显示区（C-05 / C-06 / C-08）。终端会话与监听会话共用，
+    通过 ShowChannelColumn / ShowDeltaColumn 控制列显隐。
+
+    ⚠️ 当前用 ItemsControl 作为脚手架，便于快速验证布局。
+    高波特率下必须替换为自绘控件（override Render + 虚拟化），
+    否则每帧创建一棵控件树会直接卡死界面。
+    替换时 LogPanelViewModel 的公开接口不变；自动滚动的判定逻辑也不必重写 ——
+    Controls/ScrollFollow 只吃三个几何量，新控件报得出就能直接复用。
+
+    注意：行内的时间戳与十六进制数据一律不本地化 ——
+    数值格式走 InvariantCulture，界面语言不应改变小数点写法，
+    否则会破坏 CSV 导出。
+  -->
+
+  <DockPanel>
+
+    <!-- 列头 -->
+    <Border DockPanel.Dock="Top" Padding="10,6"
+            BorderThickness="0,0,0,1"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <!-- ⚠️ 通道列 140 → 200（2026-08-01）：标签从 A · PLC 变成 COM6 · PLC，
+           注入帧还要加 TX → 前缀，最长形如 "TX → COM6 · PLC"。见 01-spec 4.13。
+           ⚠️ 这行 ColumnDefinitions 在本文件里**出现两次**（表头一次、行一次），
+           改一处不改另一处会让两者错位 —— 两处必须同时改。 -->
+      <Grid ColumnDefinitions="110,60,130,*">
+        <TextBlock Grid.Column="0" Classes="caption" Text="{loc:Translate Log.Column.Time}" />
+        <TextBlock Grid.Column="1" Classes="caption" Text="{loc:Translate Log.Column.Delta}"
+                   TextAlignment="Right" IsVisible="{Binding ShowDeltaColumn}" />
+        <TextBlock Grid.Column="2" Classes="caption" Text="{loc:Translate Log.Column.Channel}" Margin="10,0,0,0"
+                   IsVisible="{Binding ShowChannelColumn}" />
+        <TextBlock Grid.Column="3" Classes="caption" Text="{loc:Translate Log.Column.Data}" Margin="10,0,0,0" />
+      </Grid>
+    </Border>
+
+    <!-- 自动滚动（C-08）：IsFollowing 双向绑定 —— 用户上滚时控件把 false 写回
+         AutoScroll，滚回底部再置回 true。跟随判定本身在 ScrollFollow 里，
+         只吃「偏移 / 内容高 / 视口高」三个数，换自绘控件时可直接复用。 -->
+    <controls:AutoScrollViewer HorizontalScrollBarVisibility="Auto"
+                               IsFollowing="{Binding AutoScroll, Mode=TwoWay}">
+      <ItemsControl ItemsSource="{Binding Frames}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="panels:FrameViewModel">
+            <!-- 背景承担两件事：异常帧红底（4.9.3）与 TX 行淡黄底（T-04，2026-08-04 用户定）。
+                 ⭐ 优先级「异常 > TX」写在 FrameRowBackgroundConverter 里，不散在绑定上。
+                 IsVisible = T-05 的「隐藏发送数据」：过滤不是闸门，帧仍在 Frames 里，
+                 只是不画，所以重新勾上时之前的 TX 行立刻全部回来。 -->
+            <Border Padding="10,2">
+              <Border.Background>
+                <MultiBinding Converter="{StaticResource RowBackground}">
+                  <Binding Path="IsError" />
+                  <Binding Path="Accent" />
+                </MultiBinding>
+              </Border.Background>
+              <Border.IsVisible>
+                <MultiBinding Converter="{StaticResource SentVisible}">
+                  <Binding Path="IsTx" />
+                  <Binding Path="$parent[ItemsControl].((panels:LogPanelViewModel)DataContext).ShowSentData" />
+                </MultiBinding>
+              </Border.IsVisible>
+              <!-- ⚠️ 通道列 140 → 200（2026-08-01）：标签从 A · PLC 变成 COM6 · PLC，
+           注入帧还要加 TX → 前缀，最长形如 "TX → COM6 · PLC"。见 01-spec 4.13。
+           ⚠️ 这行 ColumnDefinitions 在本文件里**出现两次**（表头一次、行一次），
+           改一处不改另一处会让两者错位 —— 两处必须同时改。 -->
+      <Grid ColumnDefinitions="110,60,130,*">
+
+                <TextBlock Grid.Column="0" Classes="mono" Opacity="0.75"
+                           Text="{Binding TimestampText}" />
+
+                <TextBlock Grid.Column="1" Classes="mono" Opacity="0.75"
+                           TextAlignment="Right" Text="{Binding DeltaText}"
+                           IsVisible="{Binding $parent[ItemsControl].((panels:LogPanelViewModel)DataContext).ShowDeltaColumn}" />
+
+                <!-- 通道列：左侧色条 + 标签。颜色是「一眼看出谁在说话」的关键。
+                     监听会话里说话人是通道 A / B，终端会话里是「对端 / 我」——
+                     两者都由 Accent 统一表达（T-04）。 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0" Spacing="7"
+                            IsVisible="{Binding $parent[ItemsControl].((panels:LogPanelViewModel)DataContext).ShowChannelColumn}">
+                  <Border Width="3" VerticalAlignment="Stretch"
+                          Background="{Binding Accent, Converter={StaticResource AccentToBrush}}" />
+                  <TextBlock Classes="mono"
+                             Foreground="{Binding Accent, Converter={StaticResource AccentToBrush}}"
+                             TextTrimming="CharacterEllipsis"
+                             Text="{Binding ChannelText}" />
+                </StackPanel>
+
+                <!-- ⭐ 数据列一律用主题默认前景色（2026-08-04 用户定）。
+                     此前这里给 TX 上紫色，理由是「通道列可以被关掉，数据列永远可见」——
+                     那条理由现在由行底色满足得更好，而底色与紫字叠加只会降低可读性
+                     （实机比过三版，见 01-spec 4.12）。 -->
+                <StackPanel Grid.Column="3" Margin="10,0,0,0">
+                  <TextBlock Classes="mono" Text="{Binding DataText}" TextWrapping="NoWrap" />
+                  <TextBlock Classes="caption" Text="{Binding DecodedSummary}"
+                             IsVisible="{Binding DecodedSummary, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </controls:AutoScrollViewer>
+
+  </DockPanel>
+</UserControl>

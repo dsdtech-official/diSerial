@@ -1,0 +1,121 @@
+// diSerial developer configuration -- shipped with the package; both Debug and Release
+// copy it to the output directory.
+//
+// WARNING: debugMode must be back to false before publishing.
+//    Forgetting is fine: dotnet publish is blocked outright by the
+//    CheckDeveloperSwitchesBeforePublish target in the csproj.
+//
+// Rules:
+//   * Missing keys fall back to the built-in defaults; you do not have to write them all
+//     out. Adding a key does not require bumping schemaVersion.
+//   * Comments and trailing commas are supported, so this file is safe to hand-edit.
+//   * While debugMode is true the main window title permanently shows
+//     "DEVELOPER MODE -- SIMULATED DATA".
+//
+// WARNING: This file holds developer configuration only. User settings (UI language, port
+//    parameters) are user data and live in %AppData%\diSerial\settings.db -- one row per
+//    parameter, seeded on first launch. The two are never mixed.
+//    (It was settings.json until 2026-08-07; see P2-77.)
+{
+  // Format version of this file. Used to warn when a key is renamed; adding keys does not
+  // require touching it.
+  "schemaVersion": 2,
+
+  // ---- Form selector -------------------------------------------------------------
+  // false = user form:      exceptions are still caught and written to disk, but nothing
+  //                         simulated is ever produced
+  // true  = developer form: everything the user form does, plus
+  //                         1. it gates replay (below) -- REPLAY-* ports only appear in the
+  //                            port list when both are on
+  //
+  // NOTE: since 2026-08-09 there is no second item ("enables Avalonia DevTools"). That
+  //    capability was removed entirely, because the package it depended on declares no
+  //    license at all. debugMode no longer affects Avalonia initialisation; see
+  //    docs/02-architecture.md 11.2.3.
+  //
+  // NOTE: since 2026-07-30, debugMode on its own no longer produces any synthetic port.
+  //    It used to put SIM-A / SIM-B in the port list for use with the monitoring stub; the
+  //    stub retired with P0-1 and the ports went with it.
+  //    To exercise a monitoring session without hardware, set replay to on and use the two
+  //    REPLAY-* ports -- they run through the real capture chain, which makes them far more
+  //    trustworthy than a stub.
+  //
+  // NOTE: it does not decide how verbose the log is -- that is logLevel, and the two are
+  //    deliberately orthogonal. It does gate logPayload (below), which is what keeps
+  //    customer payloads from reaching disk in user form.
+  "debugMode": true,
+
+  // ---- Logging -------------------------------------------------------------------
+  // Volume is orthogonal to form: diagnosing something on site often needs "user form at
+  // debug volume". An unrecognised value falls back to info, never to off.
+  // NOTE: Avalonia's own logging is NOT opened up along with this setting -- it is capped
+  //    separately at Warning (P1-24; the deciding line is MinimumLevel.Override in
+  //    LoggingBootstrap). Without that cap, debug would also emit two records per Avalonia
+  //    layout pass and bury ReadChunk -- and "turn it to debug and watch ReadChunk" is
+  //    exactly how Q-1 is verified. The cap has been measured to work.
+  //    To see Avalonia layout detail (chasing a layout loop, or comparing performance
+  //    before the P1-6 custom-drawn rewrite), temporarily change that Warning in
+  //    LoggingBootstrap.
+  // NOTE: changed from info to debug on 2026-07-31 and kept that way long-term, at the
+  //    user's explicit request that day: "the program should always run in debug mode, I do
+  //    not want to adjust it every time; change it back when we are ready to release".
+  //    debug is the level that emits ReadChunk (bytes per read plus GapMs), which is the
+  //    observation point for framing and for Q-1.
+  // NOTE: payload contents are still not recorded -- that needs logPayload AND
+  //    logLevel=trace, three gates, all of them required.
+  "logLevel": "debug", // off | error | warning | info | debug | trace
+
+  // Payload hex contents. WARNING: three gates, all required: debugMode + logLevel=trace +
+  // this key.
+  //
+  // Serial payloads are the customer's own bus traffic. In user form the log is not
+  // surfaced to the user, so recording payloads there has no purpose and only a disclosure
+  // risk -- which is why debugMode has gated it since 2026-07-29.
+  // NOTE: gating is not enabling. In developer form the other two gates still have to be
+  //    opened explicitly.
+  "logPayload": false,
+
+  // ---- Replay ports --------------------------------------------------------------
+  // NOTE: only effective while debugMode is true; in user form the value is ignored.
+  //    Replay ports run through the real capture chain, so the frames they produce are
+  //    indistinguishable in the log from frames off real hardware.
+  //
+  // "coalesced" is kept deliberately: without hardware it is the only way to rehearse
+  // driver-side frame coalescing (Q-1).
+  "replay": "off", // off | on | coalesced | fragmented
+
+  // Coalescing window in milliseconds; only meaningful for "coalesced". 0 means "use the
+  // built-in default".
+  // WARNING: this 0 means the opposite of the 0 in idleGapMs below -- see the note there.
+  "replayWindowMs": 0,
+
+  // ---- Framing threshold override (the diagnostic exit for C-07) -----------------
+  // The specification is in docs/01-spec.md 4.8. C-07 is specified as "one strategy, zero
+  // user-facing knobs", so there is no entry point for this in the UI -- this key is the
+  // only way out while diagnosing. Same nature as logLevel: a diagnostic knob, orthogonal
+  // to debugMode, and effective in user form too.
+  //
+  //   key missing / null   computed automatically as max(3.5 x character time, 1.75ms).
+  //                        For 9600 8N1 that is 3.646ms
+  //   0                    one row per chunk (the predicate is always true, so every chunk
+  //                        is closed immediately), i.e. no framing at all
+  //   positive number      overridden to that many milliseconds
+  //
+  // WARNING: the meaning of 0 here is the OPPOSITE of replayWindowMs above, where 0 means
+  //    "use the built-in default". Both keep their original meaning on purpose, which is
+  //    why it is spelled out in both places.
+  //
+  // Setting it to 0 makes every row on screen exactly the chunk the driver handed over --
+  // the most direct way to answer Q-1 (what granularity does the driver report?) without
+  // reading the log or touching logLevel.
+  // NOTE: the 1d verification on 2026-07-30 temporarily set this to 200; it has been
+  //    restored. If you find it is not null, some round forgot to restore it -- just set it
+  //    back.
+  //    Why that round had to change it: HHD virtual serial ports do not emulate baud-rate
+  //    timing, so a frame produced by a single write has StartedAt == EndedAt, both
+  //    candidate formulas for the delta compute the same value, and the criterion stops
+  //    discriminating. Widening the threshold is what allowed several writes to be stitched
+  //    into one frame that spans real time.
+  //    Details are in "monitoring session end-to-end measurements" in docs/00-STATUS.md.
+  "idleGapMs": null
+}
