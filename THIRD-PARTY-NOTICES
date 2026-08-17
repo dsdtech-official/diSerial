@@ -154,13 +154,14 @@ this notice.
 
 .NET Runtime
 ============
-The self-contained build bundles the .NET runtime. Two packages are published
+The self-contained build bundles the .NET runtime. Three packages are published
 and each bundles the runtime for its own architecture:
 
   win-x86    package -> Microsoft.NETCore.App.Runtime.win-x86 10.0.10
+  win-x64    package -> Microsoft.NETCore.App.Runtime.win-x64 10.0.10
   win-arm64  package -> Microsoft.NETCore.App.Runtime.win-arm64 10.0.10
 
-Both declare:
+All three declare:
 
   License:   MIT
   Copyright: (c) Microsoft Corporation. All rights reserved.

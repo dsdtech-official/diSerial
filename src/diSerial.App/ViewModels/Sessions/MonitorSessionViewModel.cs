@@ -99,12 +99,21 @@ public sealed partial class MonitorSessionViewModel : SessionViewModel
     /// deliberately uses the same shape.
     ///
     /// <para>⚠️ <b>The file name carries ports, not aliases.</b> An alias may be empty, may
-    /// contain spaces, and both channels may carry the same one, whereas a port name is
-    /// naturally safe in a file name. Aliases travel in the exported <c>Alias</c> column
-    /// instead (P0-7 a).</para>
+    /// contain spaces, and both channels may carry the same one. Aliases travel in the
+    /// exported <c>Alias</c> column instead (P0-7 a).</para>
+    ///
+    /// <para>⛔⭐ <b>P2-117.</b> The sentence above used to end "...whereas a port name is
+    /// naturally safe in a file name". That half was WRONG, and it is worth keeping the
+    /// wreckage visible: the claim was not an oversight, it was written down as the
+    /// REASON for this design. It holds for <c>COM3</c> and fails for
+    /// <c>/dev/cu.usbserial-A1</c>, which is a path -- so this method, with TWO port names
+    /// in it, produced a file name carrying four extra directory levels and the export
+    /// silently created them. <see cref="SerialPortInfo.FileNameSegment"/> is the shared fix;
+    /// note it must be applied to each port name SEPARATELY, before they are joined.</para>
     /// </summary>
     protected override string DescribeExportBaseName(string kind) =>
-        $"diserial-{ChannelA.PortName}-{ChannelB.PortName}" +
+        $"diserial-{SerialPortInfo.FileNameSegment(ChannelA.PortName)}" +
+        $"-{SerialPortInfo.FileNameSegment(ChannelB.PortName)}" +
         $"-{Settings.ShortDescription.Replace(' ', '-')}-{DateTime.Now:yyyyMMdd-HHmmss}";
 
     /// <summary>

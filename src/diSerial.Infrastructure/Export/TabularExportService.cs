@@ -84,6 +84,17 @@ public sealed class TabularExportService(IFrameFormatter formatter) : IExportSer
         // 严格的解析器会把 "Seq" 读成 "﻿Seq"。踩过一次（那次是 clip.exe 加的）。
         await using var writer = new StreamWriter(filePath, append: false, new UTF8Encoding(false));
 
+        // ⛔ CRLF on every platform (user decision, 2026-08-15). WriteLineAsync defaults to
+        // Environment.NewLine, which made the same session export as CRLF on Windows and LF on
+        // macOS -- two byte-different files from one product, for data users compare across
+        // machines. CRLF is the direction that leaves the released Windows 1.0 output untouched;
+        // picking LF would have changed bytes users already have.
+        //
+        // ⚠️ This is the ONLY writer that produces an export, so it is the only place that has
+        // to say it. If a second export path ever appears, it has to set this too -- pinned by
+        // ExportLineEndingTests.
+        writer.NewLine = "\r\n";
+
         await writer.WriteLineAsync(BuildHeader(options));
 
         foreach (var frame in frames)

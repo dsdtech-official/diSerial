@@ -3,7 +3,23 @@
              xmlns:conv="using:DiSerial.App.Converters"
              xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
              x:Class="DiSerial.App.App"
+             Name="diSerial"
              RequestedThemeVariant="Default">
+
+    <!--
+        Name is what macOS puts in the system menu bar and in the Dock (00-STATUS P2-112).
+        ⛔ Without it the product calls itself "Avalonia Application" there, which is the
+        DEFAULT VALUE of Application.Name, not something the app chose. Measured 2026-08-14:
+        it also OVERRIDES CFBundleName from the .app bundle's Info.plist, so E-4 cannot fix
+        this and this cannot fix E-4. Both are needed.
+        ⚠️ Windows has no such position, so nothing there changes.
+        ⛔ It does NOT cover the "About" item. That one is hard coded in the framework and
+        needs the native menu installed from App.axaml.cs.
+
+        ⚠️ Do not write two consecutive hyphens anywhere in these comments: it is an XML rule,
+        and this file is parsed as XML at build time (CLAUDE.md section 6). Written after
+        tripping over exactly that while adding this comment.
+    -->
 
     <!-- ViewLocator 需要注入 IServiceProvider，故在 App.axaml.cs 中以代码注册，
          不在此处声明 <Application.DataTemplates>。 -->

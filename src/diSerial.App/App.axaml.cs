@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data;
 using Avalonia.Markup.Xaml;
 using DiSerial.App.Composition;
 using DiSerial.App.Localization;
@@ -16,7 +17,25 @@ public partial class App : Application
     private IServiceProvider? _services;
     private MainWindowViewModel? _mainViewModel;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    /// <summary>
+    /// The macOS "About" item, or null off macOS (P2-112). Held because it is created in
+    /// <see cref="Initialize"/> and can only be filled in once the view model exists.
+    /// </summary>
+    private NativeMenuItem? _macOsAboutItem;
+
+    /// <summary>
+    /// ⛔ <b>The native menu has to be attached HERE, and that is measured, not stylistic</b>
+    /// (P2-112, 2026-08-14). macOS builds the application menu once during platform startup and
+    /// reads <c>NativeMenu.GetMenu(Application.Current)</c> at that moment. Calling
+    /// <c>SetMenu</c> from <see cref="OnFrameworkInitializationCompleted"/> instead is
+    /// <b>silently ignored</b> -- no exception, no log line, the first item just stays
+    /// "About Avalonia". The same code was run from both places to establish that.
+    /// </summary>
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        CreateMacOsApplicationMenu();
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -56,6 +75,8 @@ public partial class App : Application
             desktop.MainWindow = window;
             desktop.ShutdownRequested += OnShutdownRequested;
 
+            WireMacOsApplicationMenu(_mainViewModel);
+
             // P2-75. Has to run on Opened, not here: before the window is shown it has no
             // HWND, so neither RenderScaling nor ScreenFromWindow means anything yet.
             window.Opened += OnMainWindowOpened;
@@ -64,6 +85,69 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// P2-112, first half: claim the macOS application menu so its first item stops saying
+    /// "About Avalonia".
+    ///
+    /// <para><b>Why a native menu is needed at all.</b> <c>Application.Name</c> (App.axaml)
+    /// already fixes the menu bar title and the "Hide ..." item. Measured 2026-08-14 on a
+    /// MacBook Air M4: <b>the About item does not follow it</b> and stays "About Avalonia".
+    /// That is why this fix is not one attribute.</para>
+    ///
+    /// <para>⭐ <b>Avalonia merges rather than replaces</b>, also measured: a menu holding one
+    /// item yields "About diSerial, Services, Hide diSerial, Hide Others, Show All, Quit".
+    /// ⛔ So do not add Quit or Hide here. macOS supplies them, and a duplicate would be the
+    /// very defect this is fixing, one item along.</para>
+    ///
+    /// <para>⛔ <b>The item is created empty on purpose.</b> This runs during
+    /// <see cref="Initialize"/>, where neither the view model nor
+    /// <c>LocalizationService.Current</c> exists yet, and the attach cannot be postponed (see
+    /// <see cref="Initialize"/>). Measured: setting <c>Header</c> and <c>Command</c> afterwards
+    /// does reach the live menu, so the two halves can be split.
+    /// <see cref="WireMacOsApplicationMenu"/> is the other half.</para>
+    ///
+    /// <para>⛔ <b>Gated on macOS.</b> An application-level <c>NativeMenu</c> IS the macOS
+    /// application menu; Windows has no such position.</para>
+    /// </summary>
+    private void CreateMacOsApplicationMenu()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+
+        _macOsAboutItem = new NativeMenuItem();
+
+        var menu = new NativeMenu();
+        menu.Items.Add(_macOsAboutItem);
+        NativeMenu.SetMenu(this, menu);
+    }
+
+    /// <summary>
+    /// P2-112, second half: point the About item at the product's own About dialog and give it
+    /// a header that follows the current language.
+    ///
+    /// <para>⭐ <b>The header is bound, not assigned.</b> The language switches at runtime
+    /// (P1-7); an assigned string would leave the system menu bar frozen in whatever language
+    /// the app started in while every other menu followed along.</para>
+    ///
+    /// <para>⚠️ Does nothing off macOS, because <see cref="CreateMacOsApplicationMenu"/> left
+    /// the field null there.</para>
+    /// </summary>
+    private void WireMacOsApplicationMenu(MainWindowViewModel viewModel)
+    {
+        if (_macOsAboutItem is null) return;
+
+        _macOsAboutItem.Command = viewModel.ShowAboutCommand;
+
+        var header = LocalizationService.Current?.GetBindable(LocKeys.MenuHelpAbout);
+        if (header is null) return;
+
+        _macOsAboutItem.Bind(NativeMenuItem.HeaderProperty, new Binding
+        {
+            Source = header,
+            Path = nameof(LocalizedString.Value),
+            Mode = BindingMode.OneWay
+        });
     }
 
     /// <summary>
@@ -135,7 +219,11 @@ public partial class App : Application
             var screen = window.Screens?.ScreenFromWindow(window);
             if (screen is null) return;
 
-            var message = DisplayScalingCheck.DescribeMismatch(window.RenderScaling, screen.Scaling);
+            // ⛔ P2-111: macOS sizes displays in points, so RenderScaling 2 against
+            // Screen.Scaling 1 is correct there, not a defect. Passing the platform in keeps
+            // the suppression testable from Windows; see DisplayScalingCheck.
+            var message = DisplayScalingCheck.DescribeMismatch(
+                window.RenderScaling, screen.Scaling, displaySizedInPoints: OperatingSystem.IsMacOS());
             if (message is not null)
             {
                 logger.LogWarning("{Message}", message);

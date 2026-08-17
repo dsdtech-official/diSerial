@@ -367,3 +367,8 @@ FodyWeavers.xsd
 # NOTE: this is NOT the public source repository -- that is exported OUTSIDE this repo by
 # tools\export-public.ps1, which refuses in-repo destinations. Only binaries live here.
 public/
+# macOS Finder metadata (2026-08-13, user decision; 07-macos A-8).
+# Finder drops one of these into every directory it opens, so they appear on the mac
+# machine only -- the Windows machine never produces them. Left untracked they show up
+# in every "git status", and the next step after a screen of red is often "git add".
+.DS_Store

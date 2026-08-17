@@ -18,12 +18,21 @@ namespace DiSerial.Infrastructure.Serial;
 
 /// <summary>
 /// The <c>System.IO.Ports</c> based serial implementation. <b>diSerial ships this on
-/// Windows only</b> -- the BCL type also runs on Linux, but that is not a platform we
+/// Windows and macOS</b> -- the BCL type also runs on Linux, but that is not a platform we
 /// release or verify.
 ///
-/// macOS is out of scope here: System.IO.Ports throws PlatformNotSupportedException
-/// there. Adding a P/Invoke termios implementation later leaves this class and every
-/// caller untouched -- which is exactly what the ISerialPort abstraction is for.
+/// <para>⭐ <b>macOS was measured on 2026-08-13 and works unmodified</b>: GetPortNames
+/// returns both /dev/cu.* and /dev/tty.*, a cu.* port opens, and an FTDI loopback
+/// round-trips byte for byte at 9600 and 115200 with the baud rate confirmed by timing.
+/// This class needed no macOS-specific code at all. The claim it previously carried --
+/// "System.IO.Ports throws PlatformNotSupportedException there" -- was never measured and
+/// is false. See docs/04-platforms.md 2.1a.</para>
+///
+/// <para>⛔ <b>One caller-visible difference, not yet fixed.</b> On Windows an absent port
+/// throws ArgumentException or FileNotFoundException depending on the flavour; on macOS
+/// <b>all shapes collapse to UnauthorizedAccessException</b>, which SerialErrorClassifier
+/// maps to AccessDenied. The user is therefore told "access denied" for a port that simply
+/// is not there. Tracked as 00-STATUS P2-108.</para>
 ///
 /// <b>线程模型</b>：不使用 <c>SerialPort.DataReceived</c> 事件，
 /// 而是自建读循环调用 <c>BaseStream.ReadAsync</c>。原因有二：
@@ -144,6 +153,20 @@ public sealed class SystemIoSerialPort : ISerialPort
                     _logger, ex, PortName,
                     Stopwatch.GetElapsedTime(started).TotalMilliseconds, ex.GetType().Name);
                 port.Dispose();
+
+                if (ex is UnauthorizedAccessException
+                    && ProbeDeviceNodeOnOpenFailure
+                    && IsAbsentDeviceNode(PortName, File.Exists))
+                {
+                    SerialPortLog.AbsentDeviceNodeOnOpen(_logger, PortName, ex.GetType().Name);
+
+                    // ⭐ FileNotFoundException, because SerialErrorClassifier already maps it to
+                    // PortNotFound and its wording ("may have been unplugged, or the name may be
+                    // wrong") is exactly this situation. The classifier is not touched.
+                    throw new FileNotFoundException(
+                        $"The serial port '{PortName}' does not exist.", PortName, ex);
+                }
+
                 throw;
             }
 
@@ -186,6 +209,62 @@ public sealed class SystemIoSerialPort : ISerialPort
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>
+    /// ⛔ <b>P2-108.</b> Whether an open failure should be checked against the filesystem before
+    /// being handed up. <b>Windows must never take this path.</b>
+    ///
+    /// <para>⭐ <b>Split from <see cref="IsAbsentDeviceNode"/> on purpose</b>, the same way
+    /// <c>SystemPortEnumerator.DropCallinNodes</c> is split from its predicate: the predicate is
+    /// pure and therefore testable on <b>both</b> machines, while only this flag depends on where
+    /// we are running. Folding the platform check into the predicate would leave the Windows
+    /// machine unable to exercise the branch at all.</para>
+    ///
+    /// <para>⛔ <b>Why Windows is excluded and not merely "not needed".</b> Windows port names are
+    /// device names (<c>COM3</c>), not paths, and <c>File.Exists("COM3")</c> is <b>false for a port
+    /// that is present and busy</b>. Letting this run there would turn a correct "access denied"
+    /// into a wrong "port not found" -- the exact defect this fixes, pointed the other way.</para>
+    /// </summary>
+    private static bool ProbeDeviceNodeOnOpenFailure => !OperatingSystem.IsWindows();
+
+    /// <summary>
+    /// ⛔⭐ <b>P2-108.</b> True when <paramref name="portName"/> names a device node that is not
+    /// there, so the caller may report "port not found" instead of "access denied".
+    ///
+    /// <para><b>Why this exists.</b> Measured 2026-08-14 on a MacBook Air M4, six cases: a missing
+    /// node, a busy node and a permission-denied node <b>all</b> throw
+    /// <c>UnauthorizedAccessException</c>. The type cannot tell them apart, so the user was told
+    /// "the port is in use by another program, or you do not have permission" for a cable that had
+    /// simply been unplugged -- two named causes, both false. See 00-STATUS P2-108.</para>
+    ///
+    /// <para>⛔ <b>The inner errno is NOT usable and was measured, not assumed.</b> The
+    /// <c>IOException</c> nested inside says "No such file or directory" for a node that <b>is</b>
+    /// there and merely busy, and again for one that exists with mode 000 -- while the OS itself
+    /// reports <c>EACCES</c> for the latter. It lies in precisely the two cases this predicate has
+    /// to get right. <c>File.Exists</c> was correct in all six.</para>
+    ///
+    /// <para>⭐ <b>The leading slash is load-bearing.</b> Only a name that IS a filesystem path may
+    /// be asked about; anything else is left alone. That keeps the predicate correct on its own
+    /// terms even though <see cref="ProbeDeviceNodeOnOpenFailure"/> currently only lets it run off
+    /// Windows.</para>
+    ///
+    /// <para>⚠️ <b>Absence is the only thing claimed.</b> A node that exists returns false here and
+    /// keeps its original exception -- <c>AccessDenied</c> stays reachable and stays correct for
+    /// the port that really is busy.</para>
+    /// </summary>
+    /// <param name="nodeExists">
+    /// Injected so the predicate can be exercised without touching a real filesystem.
+    /// Production passes <see cref="File.Exists(string)"/>.
+    /// </param>
+    public static bool IsAbsentDeviceNode(string portName, Func<string, bool> nodeExists)
+    {
+        ArgumentNullException.ThrowIfNull(nodeExists);
+
+        if (string.IsNullOrEmpty(portName)) return false;
+        if (portName[0] != '/') return false;
+
+        return !nodeExists(portName);
     }
 
     /// <summary>
@@ -454,14 +533,72 @@ public sealed class SystemIoSerialPort : ISerialPort
         // reclaim. See docs/00-STATUS.md P2-28.
     }
 
+    /// <summary>
+    /// The read loop's single exit report, shared by <b>both</b> places that can end it
+    /// (P2-106): taking the stream, and the read itself.
+    ///
+    /// <para>⛔ <b>Extracted rather than duplicated on purpose.</b> The two call sites must
+    /// classify identically -- <see cref="SerialErrorClassifier.ClassifyReadLoopStop"/> keys
+    /// off <paramref name="token"/> alone (P1-36), and a second hand-written copy of this
+    /// decision is exactly how the two would drift apart.</para>
+    /// </summary>
+    private void ReportReadLoopStop(
+        Exception ex, SerialPort port, CancellationToken token, long reads, long bytes)
+    {
+        var kind = SerialErrorClassifier.ClassifyReadLoopStop(ex, token.IsCancellationRequested);
+
+        if (kind is null)
+        {
+            // 我们自己要求停的 —— 正常退出。
+            SerialPortLog.ReadLoopExited(_logger, PortName, reads, bytes);
+            return;
+        }
+
+        // 设备被拔出或句柄失效。上报为致命错误后退出循环 ——
+        // 继续等待一个永远不会到来的读取毫无意义。
+        SerialPortLog.ReadLoopFaulted(_logger, ex, PortName, reads, bytes, ex.GetType().Name);
+
+        // ⭐ P1-54: release the port object before telling anyone, so the fault is
+        // already a settled state by the time a listener looks at IsOpen.
+        DisposeDeadPort(port);
+
+        ErrorReceived?.Invoke(this,
+            new SerialErrorEventArgs(
+                FrameFlags.None, ex.Message, isFatal: true, kind: kind.Value));
+    }
+
     private async Task ReadLoopAsync(SerialPort port, CancellationToken token)
     {
         var buffer = new byte[ReadBufferSize];
-        var stream = port.BaseStream;
 
         // 读次数与字节数只在循环退出时上报一次，不进热路径的每一轮。
         long reads = 0, bytes = 0;
         DateTimeOffset? previous = null;
+
+        Stream stream;
+        try
+        {
+            // ⛔⭐ P2-106: this line used to sit OUTSIDE any try -- directly above the
+            // catch-all that P1-46 widened to "catch everything". The promise in that
+            // comment was true; this one statement simply sat above it.
+            //
+            // **It throws in an ordinary race**: this task is queued by Task.Run in
+            // OpenAsync, and a close arriving before the thread pool gets to it leaves
+            // `port` already closed, so BaseStream answers with InvalidOperationException
+            // ("The BaseStream is only available when the port is open."). The faulted task
+            // was then awaited by AwaitReadLoopAsync and escaped out of CloseAsync and
+            // DisposeAsync -- measured 1 in 5 on a cold thread pool, 0 in 30 once warm.
+            //
+            // ⭐ During a close the token is already cancelled (CloseAsync cancels before
+            // it closes), so this routes to the "our own stop" branch and is logged as a
+            // normal exit -- not reported to the user as a device fault.
+            stream = port.BaseStream;
+        }
+        catch (Exception ex)
+        {
+            ReportReadLoopStop(ex, port, token, reads, bytes);
+            return;
+        }
 
         while (!token.IsCancellationRequested)
         {
@@ -493,27 +630,7 @@ public sealed class SystemIoSerialPort : ISerialPort
             // can act on beats a precise one that might be wrong, and both beat silence.
             catch (Exception ex)
             {
-                var kind = SerialErrorClassifier.ClassifyReadLoopStop(ex, token.IsCancellationRequested);
-
-                if (kind is null)
-                {
-                    // 我们自己要求停的 —— 正常退出。
-                    SerialPortLog.ReadLoopExited(_logger, PortName, reads, bytes);
-                    return;
-                }
-
-                // 设备被拔出或句柄失效。上报为致命错误后退出循环 ——
-                // 继续等待一个永远不会到来的读取毫无意义。
-                SerialPortLog.ReadLoopFaulted(
-                    _logger, ex, PortName, reads, bytes, ex.GetType().Name);
-
-                // ⭐ P1-54: release the port object before telling anyone, so the fault is
-                // already a settled state by the time a listener looks at IsOpen.
-                DisposeDeadPort(port);
-
-                ErrorReceived?.Invoke(this,
-                    new SerialErrorEventArgs(
-                        FrameFlags.None, ex.Message, isFatal: true, kind: kind.Value));
+                ReportReadLoopStop(ex, port, token, reads, bytes);
                 return;
             }
 
@@ -605,6 +722,27 @@ public sealed class SystemIoSerialPort : ISerialPort
                 // 01-spec 4.7 共有第 1 条要求 catch 处自己就留痕，不依赖调用方。
                 SerialPortLog.ReadLoopStopTimedOut(_logger, e, PortName);
                 timedOut = true;
+            }
+            catch (Exception e)
+            {
+                // ⛔⭐⭐ P2-106: the read loop task itself faulted. **Close must not pass that on.**
+                //
+                // ⚠️ The filter above used to be the only catch here, so anything else escaped
+                // through CloseAsync and out of DisposeAsync -- and "dispose twice" is the
+                // ordinary shutdown path (P2-30). ISerialPort.CloseAsync documents closing as a
+                // request for a state rather than an operation that can be refused; this is the
+                // half of that promise which lives on this side.
+                //
+                // ⭐ Swallowing here is not a silent catch (01-spec 4.7): it is logged at Error,
+                // and a fault the loop understood was already reported through ErrorReceived by
+                // ReportReadLoopStop. What reaches this line is the loop dying in a way its own
+                // handler did not cover -- which is a defect in this class, not news for the user
+                // mid-shutdown.
+                //
+                // ⛔ It is deliberately NOT folded into timedOut: that field answers "did the loop
+                // unwind in time", and a faulted loop did unwind -- badly. Merging them would put
+                // a wrong answer into the close log's readLoopTimedOut.
+                SerialPortLog.ReadLoopStopFaulted(_logger, e, PortName, e.GetType().Name);
             }
         }
 

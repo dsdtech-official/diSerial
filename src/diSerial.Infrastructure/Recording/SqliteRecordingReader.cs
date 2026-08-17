@@ -64,8 +64,16 @@ public sealed class SqliteRecordingReader(IAppPaths paths) : IRecordingReader
         await using var r = await cmd.ExecuteReaderAsync(cancellationToken);
         if (!await r.ReadAsync(cancellationToken)) return null;
 
-        var portA = r.GetString(0);
-        var portLabel = r.IsDBNull(1) ? portA : $"{portA}-{r.GetString(1)}";
+        // ⛔ P2-117: each port name is made file-name safe SEPARATELY, before the join.
+        //    Doing it afterwards cannot work -- "keep the last path segment" applied to the
+        //    joined "/dev/cu.A-/dev/cu.B" would swallow the first port whole.
+        // ⚠️ Same division of labour as SettingsLabel just below: the ENCODING lives in Core
+        //    so every call site agrees, and this layer only guarantees the resulting label
+        //    carries no path separators. The file NAME rule itself stays an App decision.
+        var portA = SerialPortInfo.FileNameSegment(r.GetString(0));
+        var portLabel = r.IsDBNull(1)
+            ? portA
+            : $"{portA}-{SerialPortInfo.FileNameSegment(r.GetString(1))}";
 
         // ⚠️ **复用 SerialPortSettings.ShortDescription，不要另写一套缩写映射。**
         // 初版在这里自己取首字母，于是 StopBits 的 "One" 变成了 'O' ——

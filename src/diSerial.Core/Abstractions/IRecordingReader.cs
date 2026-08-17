@@ -34,7 +34,20 @@ public interface IRecordingReader
 /// <see cref="ExportOptions.ChannelAliasA"/> — the port number can be recovered from the
 /// file name, <b>the alias cannot, and is lost outright if it is not in the file</b>.</para>
 /// </summary>
-/// <param name="PortLabel">Terminal: <c>COM7</c>. Monitor: <c>COM2-COM4</c>.</param>
+/// <param name="PortLabel">
+/// Terminal: <c>COM7</c>. Monitor: <c>COM2-COM4</c>.
+///
+/// <para>⚠️ Carries the <b>same guarantee as <c>SettingsLabel</c> below</b>: no path
+/// separator and no character invalid in a file name, so composing a name from it needs no
+/// further escaping. Each port name is passed through
+/// <see cref="SerialPortInfo.FileNameSegment"/> before the two are joined.</para>
+///
+/// <para>⛔ <b>P2-117.</b> This used to be the raw port name. On Windows the difference is
+/// invisible (<c>COM7</c> is unchanged); on macOS a port name is a path, so the composed
+/// file name carried slashes and the export silently wrote into directories it created.
+/// ⭐ Note the guarantee is on the LABEL, not on the file name: the naming rule itself is
+/// still the App layer's, exactly as spelled out for <c>SettingsLabel</c>.</para>
+/// </param>
 /// <param name="SettingsLabel">
 /// The port settings in hyphenated short form, e.g. <c>9600-8N1</c> — that is,
 /// <see cref="SerialPortSettings.ShortDescription"/> with its space replaced.

@@ -3,12 +3,47 @@ using DiSerial.Core.Models;
 namespace DiSerial.Core.Abstractions;
 
 /// <summary>
-/// 串口读写契约。
+/// The serial read/write contract.
 ///
-/// 上层（ViewModel、会话逻辑）一律依赖本接口，禁止直接引用 System.IO.Ports。
-/// 原因：System.IO.Ports 官方仅支持 Windows 与 Linux，在 macOS 上抛
-/// PlatformNotSupportedException。V1.1 增加 macOS 支持时，只需新增一个
-/// 基于 P/Invoke termios 的实现，上层代码不受影响。
+/// Everything above this line (ViewModels, session logic) depends on this interface and
+/// must never reference System.IO.Ports directly, so that swapping the implementation
+/// stays a one-file change.
+///
+/// <para>⚠️ <b>The reason originally given for this abstraction was wrong.</b> It read:
+/// "System.IO.Ports officially supports Windows and Linux only, and throws
+/// PlatformNotSupportedException on macOS, so V1.1 will add a P/Invoke termios
+/// implementation." <b>Measured 2026-08-13 on a MacBook Air M4: it does not throw, and a
+/// real port opens and round-trips.</b> macOS ships on <c>SystemIoSerialPort</c> like the
+/// other platforms; see docs/04-platforms.md 2.1a.</para>
+///
+/// <para>⭐ <b>The abstraction is still worth having</b> -- just for a different reason
+/// than the one on file. Non-standard baud rates need ioctl(IOSSIOSPEED), which
+/// System.IO.Ports cannot reach, so a termios implementation remains the V1.1 answer for
+/// that. The exception contract below is what such an implementation must satisfy.</para>
+///
+/// <para>⭐⭐ <b>EXCEPTION CONTRACT (P1-53, written 2026-08-12) — read this before writing a second
+/// implementation.</b> The rules are stated per member below; this paragraph is why they exist.
+/// <c>SerialErrorClassifier</c> turns whatever comes out of here into the sentence the user reads,
+/// and its mapping was calibrated against System.IO.Ports — the class says so itself. A termios
+/// implementation throws whatever a wrapper around errno throws, so <b>an implementation that
+/// ignores these rules does not fail loudly: it classifies every failure as
+/// <c>SerialErrorKind.Unknown</c></b>, and the six failure paths P0-2 was spent on start returning
+/// one generic sentence forever. Nothing breaks the build and no test goes red.</para>
+///
+/// <para>⛔ <b>The requirement is the classification, not the exception type.</b> Do not copy
+/// Windows' types: measured 2026-08-12, an unresolvable name gives <see cref="ArgumentException"/>
+/// while a well-formed but absent port gives <see cref="FileNotFoundException"/> — those are Win32
+/// error codes in BCL clothing, and reproducing them on macOS would be imitation, not compliance.
+/// <b>What every implementation owes is that each failure mode below reaches a classification
+/// other than Unknown</b>, and that the lifetime rules (disposed vs. not-open, close never
+/// refusing) hold exactly.</para>
+///
+/// <para>✅ <b>Enforced by <c>SerialPortContractTests</c></b> (Infrastructure.Tests): derive from
+/// it, return the new port from <c>CreatePort</c>, and the whole contract runs. ⚠️ The one claim
+/// that needs real hardware — a port already held open must classify as
+/// <c>AccessDenied</c>, measured 2026-08-12 on COM11 as
+/// <see cref="UnauthorizedAccessException"/> — is recorded in 00-STATUS P1-53 instead, because
+/// this project's test suite deliberately opens no ports.</para>
 /// </summary>
 public interface ISerialPort : IAsyncDisposable
 {
@@ -39,14 +74,63 @@ public interface ISerialPort : IAsyncDisposable
     /// <summary>串口错误（校验错、帧错、溢出）。</summary>
     event EventHandler<SerialErrorEventArgs>? ErrorReceived;
 
+    /// <summary>
+    /// Opens the port.
+    ///
+    /// <para><b>Throws on failure, and the exception must classify.</b> Three failure modes have
+    /// to reach a specific <c>SerialErrorKind</c> rather than <c>Unknown</c> — they are the ones
+    /// the user meets: <b>the port is not there</b> (unplugged since the list was built, or a name
+    /// that does not resolve), <b>the port is held by someone else or the device node is not
+    /// permitted</b>, and <b>the parameters were refused</b>.</para>
+    ///
+    /// <para>⛔ <b>Do not wrap the exception here.</b> <see cref="SerialPortOpenException"/> is
+    /// added by the <i>session</i>, which is the layer that knows which channel this port was —
+    /// see the type's own remarks. An implementation that wraps early makes the classifier read
+    /// through two layers and gains nothing.</para>
+    ///
+    /// <para>⚠️ <b>A failed open must leave the port closed and disposable.</b> The monitor
+    /// session opens two ports and rolls the first one back when the second fails, so cleaning up
+    /// after a failure is an ordinary path, not an edge case.</para>
+    ///
+    /// <para>Opening an already-open port is a no-op, not an error.</para>
+    /// </summary>
     Task OpenAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Closes the port.
+    ///
+    /// <para>⛔⭐ <b>Must not throw. Closing is a request for a state, not an operation that can be
+    /// refused</b> — on a port that was never opened, on one already closed, and after disposal it
+    /// is a no-op. The shutdown path reaches it more than once (P2-30's duplicate-release chains)
+    /// and the monitor rollback reaches it on a port that may never have opened; a close that can
+    /// fail turns both into error handling for a situation that is not an error.</para>
+    ///
+    /// <para>⚠️ <b>This is a requirement, and the Windows implementation does not fully meet it
+    /// today</b> — 00-STATUS <b>P2-106</b> records a measured race (1 in 5 on a cold thread pool)
+    /// where a fault inside the read loop escapes through here. <b>It is written as the
+    /// requirement on purpose</b>: a contract that describes current behaviour instead of
+    /// promising future behaviour would make the defect permanent by definition.</para>
+    ///
+    /// <para>A device that has physically gone away is the normal case for this method, not a
+    /// failure of it: log what the driver said and finish the teardown.</para>
+    /// </summary>
     Task CloseAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 写入数据。
     /// 注意：监听会话中调用本方法会把数据真实注入运行中的总线，
     /// 上层必须先经过用户显式确认（M-09）。
+    ///
+    /// <para>⭐ <b>"Disposed" and "not open" must stay distinguishable</b>, because the fix the
+    /// user needs is different: <see cref="ObjectDisposedException"/> after
+    /// <see cref="IAsyncDisposable.DisposeAsync"/>, and <see cref="InvalidOperationException"/>
+    /// when the port was simply never opened. ⚠️ The first derives from the second, so an
+    /// implementation that reports only the base type is <i>technically</i> right and actively
+    /// misleading — it points the reader at the connection state when the object itself is
+    /// gone.</para>
+    ///
+    /// <para>⛔ <b>A write failure must reach the caller.</b> This is the one path where swallowing
+    /// costs bytes: the caller believes it sent something the bus never saw.</para>
     /// </summary>
     Task WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
 
@@ -133,20 +217,29 @@ public sealed class SerialChunkReceivedEventArgs(
 }
 
 /// <summary>
-/// 打开端口失败，<b>并携带是哪一路失败的</b>。
+/// An open failed, <b>and this says which of the two ports it was</b>.
 ///
-/// <b>为什么需要它</b>：监听会话要同时打开两个端口，而失败提示必须说清
-/// 「通道 B（COM7）打不开」—— 光有底层异常说不出通道。
-/// 提示出现在<b>新建会话对话框里</b>（对话框保持打开，用户改个端口直接重试），
-/// 所以这条信息要从 Infrastructure 一路传到 App，中间不能丢。
-/// 规格见 docs/01-spec.md 4.7。
+/// <para><b>Why it exists.</b> A monitor session opens two ports at once, and the message has to
+/// be able to say "channel B (COM7) could not be opened" — the underlying exception cannot name a
+/// channel. The message appears <b>in the new-session dialog</b>, which stays open so the user can
+/// change a port and retry, so this information has to survive the whole way from Infrastructure
+/// to App. Spec: docs/01-spec.md 4.7. A terminal session has one port and leaves
+/// <see cref="Channel"/> at <see cref="ChannelId.None"/>.</para>
 ///
-/// 终端会话只有一个端口，<see cref="Channel"/> 为 <see cref="ChannelId.None"/>。
+/// <para>⛔⭐ <b>Who wraps: the session, not the port</b> (corrected 2026-08-12, P1-53). This
+/// comment used to say implementations "must" wrap their own failures in this type. ⚠️ <b>No
+/// implementation does, and none should</b>: a port object does not know which channel it was
+/// handed to. <c>MonitorCaptureSession.OpenOrThrowAsync</c> is the only place that throws this,
+/// which is right — <b>it is the layer that knows the channel</b>, and it is also the layer that
+/// has to roll the other port back first. <c>TerminalCaptureSession</c> deliberately rethrows the
+/// original exception unwrapped: with one port there is no channel to add.</para>
 ///
-/// ⚠️ <b>放在本文件而不是 Models/</b>：它是「打开端口」这个契约的一部分 ——
-/// 实现方 <b>必须</b> 用它包装底层异常，否则上层无从得知失败的是哪一路。
-/// <see cref="Exception.InnerException"/> 保住原始异常，
-/// 分类由 App 层的 SerialErrorClassifier 从 inner 得出。
+/// <para>⭐ <b>The sentence was wrong in a way that mattered.</b> Read literally it obliged the
+/// future termios implementation to wrap — adding a layer the classifier would then have to read
+/// through, in the one area 04-platforms warns fails silently.</para>
+///
+/// <para><see cref="Exception.InnerException"/> keeps the original; the App layer's
+/// <c>SerialErrorClassifier</c> classifies from that inner exception.</para>
 /// </summary>
 public sealed class SerialPortOpenException(
     ChannelId channel, string portName, Exception innerException)

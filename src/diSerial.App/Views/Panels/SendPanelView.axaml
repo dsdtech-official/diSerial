@@ -187,9 +187,15 @@
 
             ⭐ It shows port names, not "A" / "B". Those labels stopped being user-facing with
             M-05a, and what the user actually knows is which COM port is wired where. The binding
-            is InlineLabel, so renaming a channel to "PLC" mid-session shows "COM11 · PLC" here
-            too — on the one control that decides where bytes go, a stale label would be the
-            worst place for one.
+            is InlineLabel, so renaming a channel to "PLC" mid-session shows "PLC" here too — on
+            the one control that decides where bytes go, a stale label would be the worst place
+            for one.
+
+            ⚠️ This comment said 'shows "COM11 · PLC"' until 2026-08-15. It was not wrong when
+            written: InlineLabel itself was "port · alias" back then, and P2-115 shortened it to
+            the alias alone. The point of binding InlineLabel is precisely that this control
+            follows that decision instead of formatting its own label — so the sentence had to
+            change here even though nothing in this file did.
 
             ⚠️ Disabled during a timed send like everything else in this row: the payload is
             frozen at start (spec 4.14, promise 3), and letting the destination move mid-run would
@@ -426,9 +432,28 @@
           this is collapsed, nothing on screen reports the three lines. That is a known,
           accepted cost — full clause in spec 4.15. Do NOT "improve" the header without asking.
         -->
+        <!--
+          ⛔⭐ DataContext is moved onto the Expander on purpose (P2-104, 2026-08-13). Everything
+          below then binds to SignalPanelViewModel directly instead of through SignalPanel.X.
+
+          It is not tidiness — it is the fix. Avalonia logs a binding error when a link in the
+          PATH is null ("SignalPanel" in SignalPanel.Cts), and logs NOTHING when the DataContext
+          itself is null. SignalPanel is null for the whole life of a monitor session and for the
+          moment before a terminal session attaches, so the seventeen bindings in here produced a
+          burst of "Value is null." every time this view was built — 157 of the 323 lines in the
+          user's log, nearly half of it.
+
+          ⚠️ Functionally those errors were harmless: the bindings recompute once the panel
+          arrives. The cost was the log, and the log is the thing we ask users to send back.
+
+          ⭐ Same move as P1-20 (03-conventions 9.5), where it was measured to be the one that
+          actually silences these — FallbackValue per binding was the alternative, and it has to
+          be remembered on every new binding added here.
+        -->
         <Expander Margin="0,0,10,6" VerticalAlignment="Stretch"
-                  IsVisible="{Binding SignalPanel, Converter={x:Static ObjectConverters.IsNotNull}}"
-                  IsExpanded="{Binding SignalPanel.IsExpanded}"
+                  DataContext="{Binding SignalPanel}"
+                  IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}"
+                  IsExpanded="{Binding IsExpanded}"
                   Header="{loc:Translate Signal.Panel}">
           <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,6,0,0">
 
@@ -438,7 +463,7 @@
                        FontSize="12" Opacity="0.7" Margin="0,0,14,6"
                        Text="{loc:Translate Signal.Outputs}" />
             <WrapPanel Grid.Row="0" Grid.Column="1" ItemSpacing="18" LineSpacing="6" Margin="0,0,0,6">
-              <CheckBox Content="{loc:Translate Signal.Dtr}" IsChecked="{Binding SignalPanel.DtrAsserted}" />
+              <CheckBox Content="{loc:Translate Signal.Dtr}" IsChecked="{Binding DtrAsserted}" />
 
               <!--
                 ⚠️ Disabled, not hidden, when the handshake is RTS/CTS. Same shape as the line
@@ -447,10 +472,10 @@
                 The ViewModel guards the write as well - the view is the courtesy, not the rule.
               -->
               <CheckBox Content="{loc:Translate Signal.Rts}"
-                        IsChecked="{Binding SignalPanel.RtsAsserted}"
-                        IsEnabled="{Binding !SignalPanel.IsRtsOwnedByFlowControl}" />
+                        IsChecked="{Binding RtsAsserted}"
+                        IsEnabled="{Binding !IsRtsOwnedByFlowControl}" />
               <TextBlock VerticalAlignment="Center" FontSize="11" Opacity="0.55"
-                         IsVisible="{Binding SignalPanel.IsRtsOwnedByFlowControl}"
+                         IsVisible="{Binding IsRtsOwnedByFlowControl}"
                          Text="{loc:Translate Signal.RtsOwnedByFlowControl}" />
             </WrapPanel>
 
@@ -472,29 +497,29 @@
             <WrapPanel Grid.Row="1" Grid.Column="1" ItemSpacing="18" LineSpacing="6">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
-                         Fill="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
-                         Stroke="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
-                         StrokeDashArray="{Binding SignalPanel.Cts, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                         Fill="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
                 <TextBlock Text="{loc:Translate Signal.Cts}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SignalPanel.CtsText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding CtsText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
               </StackPanel>
 
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
-                         Fill="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
-                         Stroke="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
-                         StrokeDashArray="{Binding SignalPanel.Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                         Fill="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
                 <TextBlock Text="{loc:Translate Signal.Dsr}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SignalPanel.DsrText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DsrText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
               </StackPanel>
 
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
-                         Fill="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
-                         Stroke="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
-                         StrokeDashArray="{Binding SignalPanel.Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+                         Fill="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                         Stroke="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                         StrokeDashArray="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
                 <TextBlock Text="{loc:Translate Signal.Dcd}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding SignalPanel.DcdText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DcdText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
               </StackPanel>
             </WrapPanel>
           </Grid>

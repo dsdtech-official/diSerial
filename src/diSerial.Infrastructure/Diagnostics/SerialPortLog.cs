@@ -106,6 +106,24 @@ public static partial class SerialPortLog
     public static partial void ControlLineReadFailed(
         ILogger logger, Exception exception, string portName, string exceptionType);
 
+    /// <summary>
+    /// P2-108. An open failure was re-reported as "port not found" because the device node is
+    /// gone (Unix only -- <c>SystemIoSerialPort.ProbeDeviceNodeOnOpenFailure</c>).
+    ///
+    /// <para><b>Why this event exists at all.</b> The preceding
+    /// <see cref="OpenFailed"/> line records what the framework threw, which is
+    /// <c>UnauthorizedAccessException</c> for BOTH "the port is not there" and "the port is
+    /// genuinely busy" on macOS. Without this line the log would show AccessDenied while the
+    /// user was told "port not found", and the two could not be lined up afterwards.</para>
+    ///
+    /// <para>⚠️ <b>Information, not Warning.</b> Nothing went wrong here that was not already
+    /// logged one line above -- this records a decision, not a fault.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 1010, Level = LogLevel.Information,
+        Message = "Port {PortName} does not exist; reporting the {ExceptionType} from open as \"port not found\" rather than \"access denied\" (P2-108).")]
+    public static partial void AbsentDeviceNodeOnOpen(
+        ILogger logger, string portName, string exceptionType);
+
     // ---- 11xx 读路径 ----
 
     /// <summary>
@@ -153,6 +171,22 @@ public static partial class SerialPortLog
     [LoggerMessage(EventId = 1105, Level = LogLevel.Debug,
         Message = "Read loop on {PortName} did not exit within the stop timeout; Close will break it")]
     public static partial void ReadLoopStopTimedOut(ILogger logger, Exception exception, string portName);
+
+    /// <summary>
+    /// ⛔⭐ P2-106: the read loop task <b>faulted</b>, and <c>CloseAsync</c> swallowed it so that
+    /// closing stays a request for a state rather than an operation that can be refused.
+    ///
+    /// <para><b>Error, not Debug</b> — unlike <see cref="ReadLoopStopTimedOut"/>, this one is not
+    /// a normal occurrence at all: the loop has its own catch-all which reports real device
+    /// faults through <c>ErrorReceived</c>, so anything arriving here got past that, which means
+    /// a defect in <c>SystemIoSerialPort</c>. ⚠️ <b>This log line is the only trace it leaves</b>
+    /// — nothing is rethrown, and the user is mid-shutdown.</para>
+    /// </summary>
+    [LoggerMessage(EventId = 1107, Level = LogLevel.Error,
+        Message = "Read loop on {PortName} faulted while closing ({ExceptionType}); "
+                  + "the close completed anyway")]
+    public static partial void ReadLoopStopFaulted(
+        ILogger logger, Exception exception, string portName, string exceptionType);
 
     /// <summary>
     /// 硬件线路错误（P1-52）。<c>FirstOfItsKind</c> 为 <c>true</c> 的那一条**同时也上了界面**。

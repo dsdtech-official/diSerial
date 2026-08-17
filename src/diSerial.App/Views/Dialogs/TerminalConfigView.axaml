@@ -19,16 +19,49 @@
 
   <StackPanel Spacing="16" Grid.IsSharedSizeScope="True">
 
-    <Grid ColumnDefinitions="Auto,*">
+    <!--
+      ⛔ Do NOT put a ColumnDefinitions="Auto,*" attribute back on this Grid. It used to be here
+      alongside the element form below, and Avalonia APPENDS rather than replaces — the row had
+      four columns (Auto,*,Auto,*), so the field in column 1 got about half the width it looked
+      like it should have. Silent: nothing warns, and the layout stays plausible.
+      Found 2026-08-13 while checking whether P1-4 had narrowed the port box. It had not — the
+      ComboBox before it was equally narrow, for this reason.
+    -->
+    <Grid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" SharedSizeGroup="Label" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
       <TextBlock Grid.Column="0" Text="{loc:Translate Dialog.NewSession.Port}"
                  VerticalAlignment="Center" Margin="0,0,10,0" />
+      <!--
+        ⛔ An editable ComboBox is also ruled out, for a different reason than the crash below:
+        it has ONE property for "what is typed" and "what is selected", so rebuilding ItemsSource
+        wipes the box. That is the P0-8 regression, and P1-45 removed the last editable ComboBox
+        from this app for exactly that reason. This list is rebuilt on every hot-plug (C-03a), so
+        it is the worst place in the app to reintroduce it.
+      -->
+      <!--
+        ⛔⭐ Plain ComboBox, and this is an INTERIM (2026-08-13). The full design the user chose
+        is the sectioned-list one — "detected" / "used before" plus an "Other…" entry that
+        swaps this row into a text box — and it is specified in 00-STATUS P1-4. This is a strict
+        SUBSET of it: the picker half, with PortText still the single source of truth, so adding
+        the rest is additive rather than a rewrite.
+
+        ⛔ What is NOT here yet: typing a port name at all. That is the point of P1-4, so this
+        row is not finished — see the entry before changing anything here.
+
+        ⛔⭐⭐ Do NOT put AutoCompleteBox back. It CRASHES THE PROCESS when you click an item in
+        its dropdown: ArgumentOutOfRangeException inside Avalonia's own popup teardown
+        (Popup.Close -> PopupRoot.SetChild -> ContentPresenter.UpdateChild -> the detach walk
+        indexes a list that is being mutated). Measured 2026-08-13 with the full stack; entry and
+        stack are in 00-STATUS. A plain ComboBox closes its popup through a different path and is
+        what every other field in this dialog already uses.
+      -->
       <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                PlaceholderText="{loc:Translate Dialog.NewSession.Port}"
                 ItemsSource="{Binding AvailablePorts}"
-                SelectedItem="{Binding SelectedPort}"
+                SelectedItem="{Binding PickedPort}"
                 DisplayMemberBinding="{Binding DisplayName}" />
     </Grid>
 

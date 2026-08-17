@@ -33,11 +33,37 @@ public sealed partial class MonitorConfigViewModel : SessionConfigViewModel
         Settings.LoadFrom(settings.Monitor.Serial.ToSettings());
     }
 
+    /// <summary>
+    /// What is in each channel's port box -- picked or typed (P1-4). See the terminal config for
+    /// why the text is the state rather than the chosen record.
+    /// </summary>
     [ObservableProperty]
-    private SerialPortInfo? _channelAPort;
+    private string _channelAText = string.Empty;
 
+    /// <inheritdoc cref="ChannelAText"/>
     [ObservableProperty]
-    private SerialPortInfo? _channelBPort;
+    private string _channelBText = string.Empty;
+
+    public SerialPortInfo? ChannelAPort => FromText(ChannelAText);
+
+    public SerialPortInfo? ChannelBPort => FromText(ChannelBText);
+
+    /// <summary>
+    /// Each channel's dropdown selection -- a gesture, not state. See the terminal config for why
+    /// these write into the text and reset themselves to null.
+    /// </summary>
+    public SerialPortInfo? PickedChannelA
+    {
+        get => ByName(ChannelAText);
+        set { if (value is not null) ChannelAText = value.PortName; }
+    }
+
+    /// <inheritdoc cref="PickedChannelA"/>
+    public SerialPortInfo? PickedChannelB
+    {
+        get => ByName(ChannelBText);
+        set { if (value is not null) ChannelBText = value.PortName; }
+    }
 
     /// <summary>
     /// Both ports must be chosen, and they must differ.
@@ -68,9 +94,6 @@ public sealed partial class MonitorConfigViewModel : SessionConfigViewModel
 
     public override void ApplyPorts(IReadOnlyList<SerialPortInfo> ports)
     {
-        var channelA = ChannelAPort?.PortName;
-        var channelB = ChannelBPort?.PortName;
-
         Repopulate(ports);
 
         // First population prefills the first two ports, which is right most of the time --
@@ -79,19 +102,24 @@ public sealed partial class MonitorConfigViewModel : SessionConfigViewModel
         // ⚠ The prefill lives here rather than in a method the dialog calls, so that the
         // dialog never has to know this type needs two ports. That is the same rule the whole
         // split exists for.
-        if (channelA is null && channelB is null)
+        //
+        // ⛔ Both boxes must be untouched, not just one: prefilling B after the user has already
+        // typed A would pick a partner they never asked for.
+        if (string.IsNullOrWhiteSpace(ChannelAText) && string.IsNullOrWhiteSpace(ChannelBText))
         {
-            ChannelAPort = AvailablePorts.FirstOrDefault();
-            ChannelBPort = AvailablePorts.Skip(1).FirstOrDefault();
-            return;
+            ChannelAText = AvailablePorts.FirstOrDefault()?.PortName ?? string.Empty;
+            ChannelBText = AvailablePorts.Skip(1).FirstOrDefault()?.PortName ?? string.Empty;
         }
 
-        // ⚠ No fallback to "the first port" on a later refresh, unlike the terminal: silently
-        // re-pointing a channel at some other port after its own was unplugged would put a
-        // monitor on a bus the user never chose. An unplugged channel goes empty and blocks
-        // Connect instead.
-        ChannelAPort = ByName(channelA);
-        ChannelBPort = ByName(channelB);
+        // ⚠ Nothing else happens on a later refresh, and that is the point (P1-4). The rule this
+        // method used to enforce by hand -- "never silently re-point a channel at some other port
+        // after its own was unplugged, or the monitor ends up on a bus the user never chose" --
+        // now holds structurally: a refresh does not write these fields at all.
+        //
+        // ⚠ What changed with it: an unplugged channel no longer goes empty, it keeps its name,
+        // so Connect stays enabled and fails at open time with "that serial port does not exist".
+        // The old emptying was the safer answer only while the box could not be typed into; now
+        // it would be erasing input on a hot-plug.
     }
 
     public override string DescribeFailure(SessionOpenFailure failure)
@@ -105,7 +133,17 @@ public sealed partial class MonitorConfigViewModel : SessionConfigViewModel
             DescribeReason(failure));
     }
 
-    partial void OnChannelAPortChanged(SerialPortInfo? value) => RaiseCanConfirmChanged();
+    // ⛔ Each dropdown reads its selection back out of its text, so it has to be told when that
+    // moved -- see the terminal config for the full note.
+    partial void OnChannelATextChanged(string value)
+    {
+        OnPropertyChanged(nameof(PickedChannelA));
+        RaiseCanConfirmChanged();
+    }
 
-    partial void OnChannelBPortChanged(SerialPortInfo? value) => RaiseCanConfirmChanged();
+    partial void OnChannelBTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(PickedChannelB));
+        RaiseCanConfirmChanged();
+    }
 }

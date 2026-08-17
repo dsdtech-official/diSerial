@@ -52,11 +52,22 @@ public sealed class TerminalSessionViewModel : SessionViewModel
         new(SessionKind.Terminal, Port.PortName, null, null, null, Settings);
 
     /// <summary>
-    /// 带上端口与串口参数，与「停止记录」那条导出路径的口径一致（P0-7 b）。
-    /// ⚠️ <c>ShortDescription</c> 里的空格要换成连字符 —— 这个串要进文件名。
+    /// Carries the port and the serial parameters, matching the "stop recording" export
+    /// path (P0-7 b).
+    ///
+    /// <para>⚠️ Two different things have to be made file-name safe here, and neither is
+    /// automatic: <c>ShortDescription</c> contains a SPACE, and the port name may contain
+    /// PATH SEPARATORS.</para>
+    ///
+    /// <para>⛔ <b>P2-117.</b> This comment used to name only the space. That was not an
+    /// oversight about a rare case -- on Windows a port name really is safe here, so the
+    /// missing half was invisible until the same code ran on macOS, where
+    /// <c>/dev/cu.usbserial-A1</c> turned the file name into a path and the export silently
+    /// created directories. <see cref="SerialPortInfo.FileNameSegment"/> is the shared fix.</para>
     /// </summary>
     protected override string DescribeExportBaseName(string kind) =>
-        $"diserial-{Port.PortName}-{Settings.ShortDescription.Replace(' ', '-')}" +
+        $"diserial-{SerialPortInfo.FileNameSegment(Port.PortName)}" +
+        $"-{Settings.ShortDescription.Replace(' ', '-')}" +
         $"-{DateTime.Now:yyyyMMdd-HHmmss}";
 
     public override string Title => LF(LocKeys.SessionTerminalTitle, Port.PortName);

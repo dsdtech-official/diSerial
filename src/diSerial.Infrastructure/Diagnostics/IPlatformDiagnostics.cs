@@ -64,8 +64,21 @@ public abstract class PlatformDiagnosticsBase : IPlatformDiagnostics
             new("culture.current", CultureInfo.CurrentCulture.Name),
             new("culture.ui", CultureInfo.CurrentUICulture.Name),
 
-            // 时间戳精度必须如实标注 —— 产品声明的是软件级而非硬件级时间戳。
-            new("clock.resolutionMs", context.Clock.Resolution.TotalMilliseconds
+            // The timer's own period, stated honestly -- the product claims software-level,
+            // not hardware-level, timestamps.
+            //
+            // ⛔ The key says "timer" on purpose (P2-109, 2026-08-15, user's call). It used to
+            // be "clock.resolutionMs", which reads as "the precision you get" -- and that is
+            // NOT what this number is. Observable serial-event precision is set by the USB
+            // bridge's latency timer, measured at 16 ms on the FTDI loopback and up to 10.4 ms
+            // of inter-chunk gap on a Prolific device (Q-1). That is three to five orders of
+            // magnitude coarser than the value printed here.
+            //
+            // ⚠️ We deliberately do NOT print an observable-precision number: it depends on
+            // whichever adapter the user plugged in, cannot be read at run time, and any
+            // constant we picked would be a guess dressed as a measurement (03-conventions
+            // 9.5). Renaming the key removes the false claim without inventing a new one.
+            new("clock.timerResolutionMs", context.Clock.Resolution.TotalMilliseconds
                 .ToString("G17", CultureInfo.InvariantCulture)),
 
             new("log.directory", context.LogDirectory)

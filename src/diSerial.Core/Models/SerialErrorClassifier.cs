@@ -1,42 +1,74 @@
 namespace DiSerial.Core.Models;
 
 /// <summary>
-/// 把底层抛出的异常归类为 <see cref="SerialErrorKind"/>。
+/// Classifies an exception thrown by the port layer into a <see cref="SerialErrorKind"/>.
 ///
-/// <b>为什么放在 Core</b>：Infrastructure 在读循环里需要它（把故障随事件上报），
-/// App 在 ViewModel 的 catch 里也需要它（连接与发送失败就在那里被接住）——
-/// 而 App 不引用 Infrastructure（组合根除外），两边共用的东西只能落在 Core。
+/// <para><b>Why this sits in Core.</b> Infrastructure needs it inside the read loop (to report a
+/// fault alongside the event) and App needs it in the ViewModel catches (where connect and send
+/// failures are caught) -- and App does not reference Infrastructure (composition root aside),
+/// so anything both sides share can only live here.</para>
 ///
-/// 本类只依赖 BCL 异常类型，<b>不引用 System.IO.Ports</b>：
-/// 打开一个不存在的端口抛的是 <see cref="ArgumentException"/>，
-/// 端口被占用抛的是 <see cref="UnauthorizedAccessException"/> —— 都是 BCL 类型。
-/// 因此 ArchitectureTests 的平台库禁令不受影响。
+/// <para>It depends on BCL exception types only and <b>does not reference System.IO.Ports</b>,
+/// so the platform-library ban in ArchitectureTests is unaffected.</para>
+///
+/// <para>⛔ <b>The exception types below are measured, not assumed</b> (2026-08-12, and the
+/// entry that asked for the work had one of them half wrong -- 00-STATUS P2-107). Anything
+/// added here needs the same treatment: run it, do not reason about it.</para>
 /// </summary>
 public static class SerialErrorClassifier
 {
     /// <summary>
-    /// 归类一个异常。无法识别时返回 <see cref="SerialErrorKind.Unknown"/> ——
-    /// <b>绝不猜测</b>：猜错会给用户一个指向错误方向的原因，比说「未知」更糟。
+    /// Classifies one exception. Anything unrecognised returns
+    /// <see cref="SerialErrorKind.Unknown"/> -- <b>never guess</b>: a wrong guess hands the user
+    /// a reason pointing the wrong way, which is worse than saying "unknown".
+    ///
+    /// <para>⛔ <b>Arm order is load-bearing in exactly one place.</b>
+    /// <see cref="FileNotFoundException"/> derives from <see cref="IOException"/> and must be
+    /// matched first.
+    ///
+    /// <para>And <b>that half is machine-guaranteed</b>: putting it after its base is
+    /// <c>error CS8510, "the pattern is unreachable"</c> -- a build error, not a silent bug.
+    /// Verified 2026-08-13 by actually making the cut.</para>
+    ///
+    /// <para>⚠️ <b>This paragraph first claimed the opposite</b> -- that the compiler stays quiet
+    /// about a derived arm following its base. The mutation run answered COMPILE-ERROR and the
+    /// claim was simply wrong. It was written from memory, never run: 03-conventions 9.5 applied
+    /// to a code comment rather than to a 00-STATUS entry.</para>
+    ///
+    /// <para>⛔ <b>What is NOT machine-guaranteed is the arm existing at all</b> -- delete it and
+    /// everything still compiles, while a mistyped port name goes back to telling the user to
+    /// reconnect a device. That is what P2-107 was, and what the tests hold.</para>
     /// </summary>
     public static SerialErrorKind Classify(Exception? exception) => exception switch
     {
         null => SerialErrorKind.Unknown,
 
-        // 端口被占用（Windows：Access to the port 'COM3' is denied）
-        // 与 Linux/macOS 的设备节点权限被拒，抛的是同一个类型。
+        // Port already in use (Windows: "Access to the port 'COM3' is denied"), and a device
+        // node whose permissions are denied on Linux/macOS -- one type covers both.
         UnauthorizedAccessException => SerialErrorKind.AccessDenied,
 
-        // 端口名无法解析为有效串口。实测样本：
+        // The name does not resolve to a serial port at all. Measured sample:
         // "The given port name (SIM-A) does not resolve to a valid serial port."
+        // ⚠ This is NOT the "that port is not here" case -- that one is below.
         ArgumentException => SerialErrorKind.PortNotFound,
 
         TimeoutException => SerialErrorKind.Timeout,
 
-        // 句柄已释放 —— 设备拔出后继续读写的典型表现。
+        // Handle already released -- the usual shape of reading on after a device is unplugged.
         ObjectDisposedException => SerialErrorKind.DeviceRemoved,
 
-        // 设备拔出时读循环拿到的多是 IOException；
-        // InvalidOperationException 则是「端口未打开就操作」，同样归为不可用。
+        // ⭐ A well-formed name with nothing behind it: "Could not find file 'COM99'."
+        // ⛔ MUST stay above IOException, which it derives from. That is P2-107: it used to fall
+        // through to DeviceRemoved, so a mistyped port name told the user to "reconnect the
+        // device" -- a dead end for a name that was never right in the first place.
+        // ⭐ PortNotFound is the right bucket for BOTH shapes that land here (a typo, and a port
+        // that was unplugged and is still being opened by its old name): its wording says
+        // "may have been unplugged, or the name may be wrong", which is exactly the ambiguity
+        // the exception itself carries. The two are indistinguishable at this layer.
+        FileNotFoundException => SerialErrorKind.PortNotFound,
+
+        // Unplugging usually reaches the read loop as an IOException; InvalidOperationException
+        // is "operated on a port that is not open", equally unusable either way.
         IOException => SerialErrorKind.DeviceRemoved,
         InvalidOperationException => SerialErrorKind.DeviceRemoved,
 

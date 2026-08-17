@@ -31,16 +31,20 @@
 
       <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Translate Dialog.NewSession.ChannelA}"
                  VerticalAlignment="Center" Margin="0,0,10,0" />
+      <!-- Plain ComboBox, interim — the full design and the reason AutoCompleteBox may not come
+           back are both in TerminalConfigView.axaml, and apply unchanged to both channels. -->
       <ComboBox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                PlaceholderText="{loc:Translate Dialog.NewSession.ChannelA}"
                 ItemsSource="{Binding AvailablePorts}"
-                SelectedItem="{Binding ChannelAPort}"
+                SelectedItem="{Binding PickedChannelA}"
                 DisplayMemberBinding="{Binding DisplayName}" />
 
       <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Translate Dialog.NewSession.ChannelB}"
                  VerticalAlignment="Center" Margin="0,0,10,0" />
       <ComboBox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                PlaceholderText="{loc:Translate Dialog.NewSession.ChannelB}"
                 ItemsSource="{Binding AvailablePorts}"
-                SelectedItem="{Binding ChannelBPort}"
+                SelectedItem="{Binding PickedChannelB}"
                 DisplayMemberBinding="{Binding DisplayName}" />
     </Grid>
 

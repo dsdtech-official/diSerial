@@ -8,7 +8,7 @@
 |---|---|
 | **Stack** | .NET 10 / Avalonia 12.1.0 / CommunityToolkit.Mvvm 8.4.2 / Microsoft.Extensions.DependencyInjection |
 | **UI languages** | Nine: English, Simplified Chinese, Traditional Chinese, Japanese, French, German, Spanish, Italian and Portuguese. **The first launch follows the operating system's UI language** (a Chinese system starts in Chinese, a Japanese one in Japanese; anything else falls back to English), and the `Language` menu switches **live**, no restart. Once you pick one it is remembered and the OS no longer has a say.<br>Two regional notes, both deliberate: Portuguese is **European**, not Brazilian, and Traditional Chinese uses **Taiwanese** terminology |
-| **Platform** | Windows 10 version 1607 or later. **Two builds**: `win-x86` for 32-bit and 64-bit Intel/AMD machines, `win-arm64` for Windows on Arm — each package carries a `COMPATIBILITY.txt` saying which one to take. Windows 7 / 8 / 8.1 are **not** supported. macOS is planned; Linux is not |
+| **Platform** | **Windows** 10 version 1607 or later (7 / 8 / 8.1 are **not** supported) and **macOS 12 or later on Apple Silicon**. **Four builds**: `win-x86` (32-bit), `win-x64` (64-bit Intel/AMD), `win-arm64` (Windows on Arm) and `osx-arm64` — each package carries a `COMPATIBILITY.txt` saying which one to take. There is no Intel Mac build and no Linux build |
 | **License** | Apache-2.0 — see [LICENSE](LICENSE) and [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) |
 
 > **About this repository:** it holds the source of **released** versions of diSerial. Each release is
@@ -24,30 +24,50 @@
 
 ## Downloads
 
-Each release ships **two** packages, both self-contained — there is no .NET runtime to install:
+Each release ships **four** packages, all self-contained — there is no .NET runtime to install:
 
 | Package | For |
 |---|---|
-| `diSerial-<version>-win-x86.zip` | 32-bit and 64-bit Intel/AMD machines |
+| `diSerial-<version>-win-x64.zip` | 64-bit Windows on Intel or AMD |
+| `diSerial-<version>-win-x86.zip` | 32-bit Windows |
 | `diSerial-<version>-win-arm64.zip` | Windows on Arm |
+| `diSerial-<version>-osx-arm64.zip` | macOS on Apple Silicon |
 
-Unzip anywhere and run `diSerial.exe`. Every package also carries `COMPATIBILITY.txt` (which machines
-that build is for), `LICENSE`, `NOTICE` and `THIRD-PARTY-NOTICES` — **keep them with the executable if
-you pass the package on**; the licence requires it.
+Unzip anywhere, then run `diSerial.exe` (Windows) or open `diSerial.app` (macOS). Every package also
+carries `COMPATIBILITY.txt` (which machines that build is for), `LICENSE`, `NOTICE` and
+`THIRD-PARTY-NOTICES` — **keep them with the executable if you pass the package on**; the licence
+requires it.
 
-> ⚠️ **The executable is not code-signed, so Windows SmartScreen will show a warning** ("Windows
-> protected your PC"). Getting past it is `More info` → `Run anyway`.
+**Every release publishes the SHA-256 of every package.** Check what you downloaded:
+
+```powershell
+(Get-FileHash .\diSerial-<version>-win-x64.zip -Algorithm SHA256).Hash   # Windows
+```
+
+```bash
+shasum -a 256 diSerial-<version>-osx-arm64.zip                           # macOS
+```
+
+You can also check the other direction: the release notes quote the exact version string the
+application reports, so compare it against the binary — right-click `diSerial.exe` →
+`Properties` → `Details` on Windows, or read `DiSerialInformationalVersion` in
+`diSerial.app/Contents/Info.plist` on macOS. That string is what ties the binary to the source
+published here.
+
+> ⚠️ **Windows: the executables are not code-signed**, so SmartScreen will show a warning
+> ("Windows protected your PC"). Getting past it is `More info` → `Run anyway`. An unsigned
+> download is exactly the case where the checksum above is worth the ten seconds.
 >
-> **Check what you downloaded before you do that** — an unsigned download is exactly the case where
-> the checksum is worth the ten seconds. Every release publishes the SHA-256 of both packages:
+> ✅ **macOS: the app is signed and notarized**, so it opens normally — no warning and no
+> right-click-Open dance. You can confirm that yourself before running it:
 >
-> ```powershell
-> (Get-FileHash .\diSerial-1.0.0-win-x86.zip -Algorithm SHA256).Hash
+> ```bash
+> spctl -a -vvv -t exec diSerial.app     # expect: accepted / source=Notarized Developer ID
 > ```
 >
-> You can also check the other direction: the release notes quote the exact version string the
-> application reports, so right-click `diSerial.exe` → `Properties` → `Details` and compare. That
-> string is what ties the binary to the source published here.
+> Drag `diSerial.app` into `/Applications` before opening it. Running it straight from
+> `~/Downloads` also works, but macOS then launches it from a randomized read-only path
+> (App Translocation), which makes the app's own file paths in logs harder to read.
 
 ## Quick start
 
@@ -87,11 +107,23 @@ tools\publish.ps1 -WhatIf   # report what it would do, change nothing
 tools\publish.ps1           # build it
 ```
 
-It produces **two** self-contained, single-file builds — `win-x86` and `win-arm64` — with trimming
-**off**, drops the two third-party native symbol files (`libSkiaSharp.pdb`, `libHarfBuzzSharp.pdb` —
-together about 100 MB, larger than the application), keeps the managed PDBs so log stack traces
-retain line numbers, writes `diserial.dev.json` into each package with `logLevel` set to `info`, and
-copies in the licence texts plus a `COMPATIBILITY.txt` naming the machines that package is for.
+It produces **three** self-contained, single-file Windows builds — `win-x86`, `win-x64` and
+`win-arm64` — with trimming **off**, drops the two third-party native symbol files
+(`libSkiaSharp.pdb`, `libHarfBuzzSharp.pdb` — together about 100 MB, larger than the application),
+keeps the managed PDBs so log stack traces retain line numbers, writes `diserial.dev.json` into each
+package with `logLevel` set to `info`, and copies in the licence texts plus a `COMPATIBILITY.txt`
+naming the machines that package is for.
+
+The macOS build is not in the default set; ask for it explicitly:
+
+```bash
+pwsh -File tools/publish.ps1 -Rid osx-arm64
+```
+
+That produces a `diSerial.app` bundle. **Signing and notarization are not part of this script** —
+they need an Apple developer certificate, so the bundle you build yourself is unsigned. That is
+expected: the published macOS download is the signed one, and the point of this script is that you
+can build the same application from this source and compare its behaviour.
 
 ---
 
@@ -163,7 +195,8 @@ If the title did not change, check the log — it says `Running in USER FORM: no
 
 1. Launch the app → empty state is shown. **The language follows the operating system on a
    machine that has never had one chosen** — English system, English UI; Chinese system,
-   Chinese UI; Japanese system, Japanese UI. (Delete `%AppData%\diSerial\settings.json` to get back to that state.)
+   Chinese UI; Japanese system, Japanese UI. (Delete `settings.db` from the configuration directory
+   below to get back to that state.)
 2. Menu `Language → 简体中文` → **the whole UI switches to Chinese immediately, no restart**;
    close and reopen and the choice is remembered
 3. `File → New session` → click "Serial monitor" → both channels are pre-filled with the first two
@@ -183,8 +216,15 @@ If the title did not change, check the log — it says `Running in USER FORM: no
 > of them (a typical one: a `ControlTheme` missing `BasedOn` made dropdown items invisible, while
 > keyboard navigation still worked — so the tests happily "passed").
 
-User settings are stored in `%AppData%\diSerial\settings.json` (`~/.config/diSerial/` on macOS).
-Delete that file to return to all defaults.
+User settings are stored in `settings.db` in the configuration directory:
+
+```
+%AppData%\diSerial\        Windows
+~/.config/diSerial/        macOS
+```
+
+One directory holds everything the application writes: `settings.db`, `recordings.db` and the `logs`
+folder. Delete `settings.db` to return to all defaults, or the whole directory for a clean state.
 
 ---
 
@@ -219,11 +259,12 @@ planned for a later version (Modbus decoding).
 
 ## Logging
 
-Logging starts on its own, no configuration needed. Files sit next to the settings file:
+Logging starts on its own, no configuration needed. Files sit next to the settings database, in a
+`logs` subdirectory of the configuration directory shown above:
 
 ```
-%AppData%\diSerial\logs\diserial-<date>.log      human-readable
-%AppData%\diSerial\logs\diserial-<date>.jsonl    machine-readable (one event per line)
+diserial-<date>.log      human-readable
+diserial-<date>.jsonl    machine-readable (one event per line)
 ```
 
 To turn up the volume while investigating, change `logLevel` in `diserial.dev.json`:

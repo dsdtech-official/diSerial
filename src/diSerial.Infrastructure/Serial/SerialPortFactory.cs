@@ -7,15 +7,24 @@ using Microsoft.Extensions.Logging;
 namespace DiSerial.Infrastructure.Serial;
 
 /// <summary>
-/// 串口实例工厂 —— 平台差异的唯一收敛点。
+/// Serial port factory: the single place platform differences converge.
 ///
-/// 这是整个跨平台策略的关键：调用方永远只拿到 <see cref="ISerialPort"/>，
-/// 具体用哪个实现由本类按运行平台决定。新增 macOS 支持时，
-/// 只需在此追加一个分支并提供 TermiosSerialPort，
-/// 上层（会话、ViewModel、View）零改动。
+/// Callers only ever receive an <see cref="ISerialPort"/>; this class decides which
+/// implementation backs it. <see cref="SupportStatus"/> lets the UI say so <b>before the
+/// user clicks connect</b> rather than throwing PlatformNotSupportedException on open.
 ///
-/// <see cref="SupportStatus"/> 让 UI 能在<b>用户点连接之前</b>就给出明确提示，
-/// 而不是等到打开端口时抛 PlatformNotSupportedException 才崩溃。
+/// <para>⭐ <b>Measured 2026-08-13 on the MacBook Air M4: macOS returns Supported and is
+/// served by <see cref="SystemIoSerialPort"/> like the other two platforms.</b> This class
+/// used to report MacOsNotImplemented, on the strength of a claim -- "System.IO.Ports
+/// throws PlatformNotSupportedException on macOS" -- that lived in four code comments and
+/// four documents and <b>was never once measured</b>. It is false: GetPortNames does not
+/// throw, a /dev/cu.* port opens, and an FTDI loopback round-trips byte for byte with the
+/// baud rate demonstrably applied. See docs/04-platforms.md 2.1a.</para>
+///
+/// <para>⚠️ <b>termios was not disproved, only bypassed.</b> System.IO.Ports cannot reach
+/// ioctl(IOSSIOSPEED), so non-standard baud rates would still need the P/Invoke path that
+/// docs/04-platforms.md 2.2 describes. That is a V1.1 item, and it is why those sections
+/// are still on file.</para>
 /// </summary>
 /// <param name="loggerFactory">
 /// 可选。每个端口拿到以自身端口名为分类的 logger，日志里可直接按端口过滤。
@@ -42,8 +51,8 @@ public sealed class SerialPortFactory(
         // 分类名带上端口名，监听会话的两路通道在日志里天然可分。
         var logger = loggerFactory?.CreateLogger($"Serial.{portName}");
 
-        // Windows uses the System.IO.Ports implementation.
-        // macOS will return a TermiosSerialPort here in a later version.
+        // Windows, Linux and macOS are all served by the System.IO.Ports implementation.
+        // A TermiosSerialPort would only be needed for non-standard baud rates (V1.1).
         return new SystemIoSerialPort(
             portName, settings, clock, logger, loggingOptions?.IncludePayload ?? false);
     }
@@ -52,7 +61,7 @@ public sealed class SerialPortFactory(
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return PlatformSupportStatus.Supported;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return PlatformSupportStatus.Supported;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return PlatformSupportStatus.MacOsNotImplemented;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return PlatformSupportStatus.Supported;
         return PlatformSupportStatus.UnknownPlatform;
     }
 }

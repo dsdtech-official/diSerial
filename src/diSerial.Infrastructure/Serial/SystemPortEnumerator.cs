@@ -34,6 +34,7 @@ public sealed class SystemPortEnumerator : IPortEnumerator
         var descriptions = await _details.GetDescriptionsAsync(cancellationToken);
 
         return names
+            .Where(name => !DropCallinNodes || !IsMacOsCallinNode(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(NumericAwareKey, StringComparer.OrdinalIgnoreCase)
             .Select(name => new SerialPortInfo
@@ -42,6 +43,41 @@ public sealed class SystemPortEnumerator : IPortEnumerator
                 Description = descriptions.GetValueOrDefault(name, string.Empty)
             })
             .ToArray();
+    }
+
+    /// <summary>
+    /// ⛔ <b>P1-5.</b> Whether this run should hide macOS callin nodes. Split out from
+    /// <see cref="IsMacOsCallinNode"/> on purpose: the predicate is pure and therefore testable
+    /// on <b>both</b> machines, while only this flag depends on where we are running. Folding
+    /// the platform check into the predicate would leave the Windows machine unable to exercise
+    /// the filtering branch at all.
+    /// </summary>
+    private static bool DropCallinNodes => OperatingSystem.IsMacOS();
+
+    /// <summary>
+    /// ⛔⭐ <b>P1-5.</b> True when <paramref name="portName"/> is a macOS <b>callin</b> device
+    /// node, which must never be offered to the user.
+    ///
+    /// <para><b>Why this exists.</b> Measured 2026-08-13 on a MacBook Air M4:
+    /// <c>SerialPort.GetPortNames()</c> returns <b>both</b> nodes for every device --
+    /// <c>/dev/cu.NAME</c> (callout) and <c>/dev/tty.NAME</c> (callin). Unfiltered, every
+    /// physical device appears twice in the port list with nothing to tell the two apart, and
+    /// <b>picking the tty one blocks inside open() waiting for a DCD carrier</b>. The user sees
+    /// the app hang on connect with no error and no way to guess why. See docs/04-platforms.md
+    /// 2.1 and 00-STATUS P1-5.</para>
+    ///
+    /// <para>⭐ <b>The dot is load-bearing.</b> This matches "tty." and not "tty", because
+    /// Linux's <c>ttyS0</c> / <c>ttyUSB0</c> / <c>ttyACM0</c> are real ports carrying no dot.
+    /// The predicate is thus correct on its own terms even though
+    /// <see cref="DropCallinNodes"/> currently only lets it run on macOS.</para>
+    /// </summary>
+    public static bool IsMacOsCallinNode(string portName)
+    {
+        if (string.IsNullOrEmpty(portName)) return false;
+
+        var lastSlash = portName.LastIndexOf('/');
+        var fileName = portName.AsSpan(lastSlash + 1);
+        return fileName.StartsWith("tty.", StringComparison.Ordinal);
     }
 
     /// <summary>

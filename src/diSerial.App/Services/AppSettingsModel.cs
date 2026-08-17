@@ -27,7 +27,20 @@ namespace DiSerial.App.Services;
 /// </summary>
 public sealed record AppSettingsModel
 {
-    /// <summary>界面语言（如 <c>zh-Hans</c>）。null 表示从未选择过，走默认英语。</summary>
+    /// <summary>
+    /// UI language, e.g. <c>zh-Hans</c>. Null means the user never chose one.
+    ///
+    /// <para>⛔ Null does NOT mean English. Since 2026-08-05 (user decision) the order is
+    /// <b>stored preference &gt; system UI language &gt; English</b>: with nothing stored the
+    /// app follows <c>CultureInfo.CurrentUICulture</c>, walking its parent chain, and only
+    /// falls back to English when none of the shipped languages matches. Before that change
+    /// every Chinese user got an English UI. See <c>ApplyStoredLanguage</c>.</para>
+    ///
+    /// <para>⚠️ This comment said "null means English" until 2026-08-16 -- it was written
+    /// before that decision and nobody revisited it. It matters because it is the sentence
+    /// someone reads when a machine "opens in the wrong language": the answer is almost
+    /// always the system UI culture or a stored value, not a default.</para>
+    /// </summary>
     public string? Language { get; set; }
 
     /// <summary>

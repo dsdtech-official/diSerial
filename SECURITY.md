@@ -18,10 +18,27 @@ Not disabled by a setting — **absent from the source**.
 Check it yourself:
 
 ```bash
-grep -rE "System\.Net|HttpClient|WebClient|Socket|TcpClient|UdpClient|WebRequest|Dns\." src/
+grep -rE --include='*.cs' --include='*.axaml' --exclude-dir=bin --exclude-dir=obj \
+  "System\.Net|HttpClient|WebClient|Socket|TcpClient|UdpClient|WebRequest|Dns\." src/
 ```
 
-That returns nothing. You can also confirm from the outside: the dependency list in
+That returns nothing.
+
+> ⚠️ **Two exclusions in that command are load-bearing, and it is fairer to tell you why than to
+> let you find them.** Drop them and you *will* get hits — none of them from code we wrote:
+>
+> - `obj/…/GlobalUsings.g.cs` contains `global using System.Net.Http;`. The .NET SDK adds that
+>   line to every project it builds; it imports a namespace, and importing a namespace is not
+>   using it. **No type from it appears anywhere in the source** — which is what the command
+>   above shows.
+> - `bin/` holds the compiled third-party libraries (Avalonia and friends). Those are binaries,
+>   and some of them do contain networking code that this application never calls.
+>
+> If you would rather not take that on trust, the honest check is the runtime one below: block it
+> at the firewall and watch. Source greps can be argued with; a process that never opens a socket
+> cannot.
+
+You can also confirm from the outside: the dependency list in
 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) contains no networking library, and the
 published build is a single self-contained executable whose contents are exactly what
 those dependencies produce.
@@ -78,12 +95,22 @@ Relevant code: `src/diSerial.Infrastructure/Diagnostics/LoggingOptions.cs`.
 
 ## 4. Where diSerial puts files, and nowhere else
 
-| What | Where |
+Everything the application writes lives in **one** directory:
+
+```
+%AppData%\diSerial\        Windows
+~/.config/diSerial/        macOS
+```
+
+| What | Where, inside that directory |
 |---|---|
-| Settings | `%AppData%\diSerial\settings.json` |
-| Logs | `%AppData%\diSerial\logs\` |
-| Recordings, and the terminal send history | `%AppData%\diSerial\recordings.db` (a local SQLite file) |
+| Settings | `settings.db` (a local SQLite file) |
+| Logs | `logs\` |
+| Recordings, and the terminal send history | `recordings.db` (a local SQLite file) |
 | Exports | Only where you choose, when you ask to export |
+
+There is nowhere else: the location is fixed in one class (`AppPaths`), the same code on both
+platforms, and **the application reads no environment variables at all**, so nothing can redirect it.
 
 Recordings stay on your machine. Nothing is uploaded, because there is nothing to upload
 with (see section 1). Delete the folder and diSerial returns to a clean state.
@@ -109,8 +136,15 @@ The released executable is built by [`tools/publish.ps1`](tools/publish.ps1), wh
 published here as well. Build it yourself and compare behaviour:
 
 ```powershell
-tools\publish.ps1
+tools\publish.ps1                             # Windows: all three Windows packages
 ```
+
+```bash
+pwsh -File tools/publish.ps1 -Rid osx-arm64   # macOS
+```
+
+> On macOS the bundle you build is **unsigned** — signing and notarization need an Apple developer
+> certificate and are not part of this script. The published macOS download is the signed one.
 
 The startup banner in the log records the exact version, including the commit the build
 came from, so you can tell which source a given installation corresponds to.
@@ -128,7 +162,7 @@ it is therefore not a policy we remember — it is checked automatically, and th
 when a check does.
 
 The test suite itself is not published (see the note in section 5), so here is what it
-guards. **As of 2026-08-03 the suite is 566 cases**, of which these are the ones relevant to
+guards. **As of 2026-08-17 the suite is 1,042 cases**, of which these are the ones relevant to
 this page:
 
 | What is guarded | Why it needs a machine, not a habit |
@@ -146,9 +180,13 @@ Two properties of these checks matter more than their number:
 - **They fail the build, not a report.** A broken guarantee stops the release; it does not
   produce a warning somebody has to notice.
 - ⭐ **The scanners check themselves.** Any check that works by reading source text can fail
-  in the worst possible way — by reading nothing and passing. **14 cases exist purely to
+  in the worst possible way — by reading nothing and passing. **30 cases exist purely to
   prove the scanners are not blind**: each plants a violation it must catch, so a scanner
   that has stopped seeing its input turns red instead of green.
+- ⭐ **And one check watches those.** A scanner shipped with a weak self-check is the same
+  hole one level up, so a further case requires **every** self-check to carry a marker saying
+  it has been reviewed against the known ways they fail. It enforces *that someone looked*,
+  not *that they judged correctly* — which is the part a machine can actually hold.
 
 > Counts on this page describe the release they ship with; they move as the product does. The
 > startup banner records the exact commit a given installation was built from (section 5), so
@@ -163,5 +201,6 @@ rather than opening a public issue:
 
 **dsd_tech@outlook.com** — DongGuan DESHIDE TECHNOLOGY CO.,LTD, www.deshide.com
 
-Please say which package and version you were running: the version string is on the
-executable's `Properties` → `Details` tab, and in the startup banner in the log.
+Please say which package and version you were running. The version string is in the startup banner
+in the log, and also on the binary itself: `Properties` → `Details` on Windows, or
+`DiSerialInformationalVersion` in `diSerial.app/Contents/Info.plist` on macOS.

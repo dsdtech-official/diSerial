@@ -24,6 +24,20 @@ public static class LocKeys
     /// <summary>语言菜单标题，含当前语言名占位符。各语言自行决定标点写法。</summary>
     public const string MenuLanguage = "Menu.Language";
 
+    /// <summary>
+    /// The "About" item. <b>The in-window menu and the macOS system menu bar share this one
+    /// key</b> (P2-112).
+    ///
+    /// <para>⚠️ <b>This class otherwise only lists keys a ViewModel needs, and this one's
+    /// consumer is <c>App.axaml.cs</c></b>: the macOS application menu can only be installed
+    /// from code, and installing it needs the key to fetch a bindable translation. It is a
+    /// constant rather than a literal so that it and the
+    /// <c>{loc:Translate Menu.Help.About}</c> in <c>MainWindow.axaml</c> demonstrably refer to
+    /// the same entry -- two places showing the same word is not something to keep aligned by
+    /// remembering.</para>
+    /// </summary>
+    public const string MenuHelpAbout = "Menu.Help.About";
+
     // ---- 会话标题与状态 ----
     public const string SessionTerminalTitle = "Session.Terminal.Title";
     public const string SessionMonitorTitle = "Session.Monitor.Title";

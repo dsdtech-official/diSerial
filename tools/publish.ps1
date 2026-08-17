@@ -12,26 +12,41 @@
 # all three are exactly where trimming breaks things, and it breaks them ONLY in the
 # published build. That is the worst possible place to find a defect before a release.
 #
-# TWO packages: win-x86 and win-arm64 (user decision 2026-08-06). One command builds both.
+# THREE packages: win-x86, win-x64 and win-arm64. One command builds all of them.
 #
 #   package    | 64-bit x86 | 32-bit x86 | Win11 Arm64 | Win10 Arm64
 #   -----------|------------|------------|-------------|-------------
 #   win-x86    | WOW64      | native     | (see below) | (see below)
+#   win-x64    | native     | -          | emulated    | -
 #   win-arm64  | -          | -          | native      | native
 #
-# Between them every target machine gets a package that runs NATIVELY or under WOW64, and
-# no machine is left out.
+# Every target machine gets a package that runs NATIVELY, except 32-bit x86 (which only
+# win-x86 can serve, natively) -- no machine is left out.
 #
-# Why not one package. Until 2026-08-06 this shipped win-x86 alone, chosen (2026-08-04)
-# because it reaches strictly more machines than win-x64: Win10 on Arm only ever emulated
-# x86, so win-x64 silently loses both 32-bit machines and every Win10 Arm64 machine.
+# HISTORY, because the shape changed twice and each change had a different reason.
+#
+# Until 2026-08-06 this shipped win-x86 ALONE, chosen (2026-08-04) because it reaches
+# strictly more machines than win-x64: Win10 on Arm only ever emulated x86, so win-x64
+# silently loses both 32-bit machines and every Win10 Arm64 machine.
 #
 # That coverage argument still holds -- but it counted whether a machine could START the
 # program, not what it looked like once running. P2-75: the win-x86 package renders at 100%
 # scale under Arm64 emulation, so on a scaled display the whole UI comes out 20-33% too
 # small (67% on a 150% display, which is what a 4K laptop ships with). Adding a native
-# arm64 package fixes exactly the machines that were affected and nothing else.
+# arm64 package (2026-08-06) fixes exactly the machines that were affected and nothing else.
 # Dropping win-x86 was rejected: it is the only package 32-bit machines can run.
+#
+# win-x64 was added 2026-08-17 (user decision), and the reason is NOT that the two-package
+# coverage argument broke -- it did not. It is a NEW distribution channel: the Microsoft
+# Store picks the architecture for the customer, so "the user reads COMPATIBILITY.txt and
+# picks" -- the whole basis of the 2026-08-06 shape -- does not exist there. On the Store a
+# 64-bit x86 customer would silently receive the 32-bit package because it is the only one
+# their machine can run. The user decided both channels ship the same three packages rather
+# than letting the download channel and the Store diverge (06-public 2.8).
+#
+# NOTE the x86-on-x64 case is NOT the P2-75 defect: measured by the user 2026-08-06, the
+# win-x86 package on a real x64 machine renders correctly. What win-x64 buys those machines
+# is a native 64-bit process, not a fix for a visible bug.
 #
 # NOT a side effect, measured 2026-08-06 and worth stating because the opposite was
 # assumed first: the native arm64 package STILL takes the Adreno software-rendering
@@ -47,8 +62,13 @@
 # (user decision 2026-08-04: Windows 7 is not a target).
 #
 # Each package carries a COMPATIBILITY.txt saying which machines it is for, because with
-# two downloads a user can now pick the wrong one -- and for the x86 package on an Arm64
+# several downloads a user can now pick the wrong one -- and for the x86 package on an Arm64
 # machine the symptom (P2-75, an undersized UI) does not look like "wrong download" at all.
+#
+# WARNING: that note is the download channel's safety net and the Microsoft Store has NO
+# equivalent step -- nobody reads a text file the Store never shows them. On that channel the
+# only thing standing between a customer and the wrong architecture is which packages we
+# submit, which is why win-x64 exists (06-public 2.8).
 #
 # The text lives in tools/package-notes/ rather than in here: it is user-facing prose that
 # will be edited far more often than this script, and keeping it out means a wording change
@@ -58,14 +78,20 @@
 # All text in this file is ASCII on purpose (03-conventions 10.5).
 
 param(
-    [string[]]$Rid = @('win-x86', 'win-arm64'),
+    [string[]]$Rid = @('win-x86', 'win-x64', 'win-arm64'),
     [switch]$WhatIf
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$proj = Join-Path $root 'src\diSerial.App\diSerial.App.csproj'
-$devJson = Join-Path $root 'src\diSerial.App\diserial.dev.json'
+
+# Forward slashes, not backslashes (2026-08-14). Windows accepts '/' everywhere, and
+# PowerShell on macOS does NOT translate '\' -- it is a legal filename character there, so
+# 'src\diSerial.App\x.csproj' became a single file named "src\diSerial.App\x.csproj" that
+# never existed. The failure is a plain "not found", which reads like a missing file rather
+# than a malformed path.
+$proj = Join-Path $root 'src/diSerial.App/diSerial.App.csproj'
+$devJson = Join-Path $root 'src/diSerial.App/diserial.dev.json'
 $notesDir = Join-Path $PSScriptRoot 'package-notes'
 
 # Third-party NATIVE symbol files. Skia alone is 84 MB and HarfBuzz 20 MB -- together
@@ -76,6 +102,210 @@ $notesDir = Join-Path $PSScriptRoot 'package-notes'
 # "exception records carry a full call stack". PathMap already strips the build machine's
 # paths out of them (02-architecture 11.1.6), so shipping them leaks nothing.
 $dropSymbols = @('libSkiaSharp.pdb', 'libHarfBuzzSharp.pdb')
+
+# ---- macOS support (E-4, 2026-08-14) -------------------------------------------------
+#
+# osx-* RIDs are NOT in the default set on purpose. The shipped form is the three Windows
+# packages above and that is a spec-level statement, not a detail this script may widen on
+# its own. Naming -Rid osx-arm64 opts in.
+#
+# What an osx RID needs that a win RID does not:
+#
+#   1. The apphost has no file extension: diSerial, not diSerial.exe.
+#   2. The apphost is Mach-O and carries NO version resource, so
+#      FileVersionInfo.GetVersionInfo returns a record of nulls -- not an error, a silently
+#      empty answer, which would have made the "all packages agree on version" check below
+#      pass on two empty strings. The managed assembly IS a PE file even when the target is
+#      macOS, so the version is read from the build output's diSerial.dll instead.
+#      Measured 2026-08-14: it reports 1.0.0+<git sha>, the same value Windows reports.
+#   3. A bare executable is not an application on macOS: no Dock name, no Finder name, and
+#      NSWorkspace cannot see it. It has to be wrapped in a .app bundle.
+#   4. The bundle carries a launcher script, and that is P2-110 rather than packaging
+#      taste -- see New-MacAppBundle.
+#
+# The icon (E-3) IS done here as of 2026-08-15: Contents/Resources/diserial.icns plus
+# CFBundleIconFile. The .icns is committed rather than converted at publish time, because
+# sips and iconutil are macOS-only and this script also runs on Windows.
+#
+# ⛔ This comment previously read "NOT done here ... the bundle gets the system's generic
+# application icon". Left as a note of what the failure mode was: nothing errors when the
+# icon is missing, the app just wears the generic icon -- which is how it stayed open.
+function Test-IsMacRid {
+    param([string]$Rid)
+    return $Rid.StartsWith('osx-', [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-AppHostName {
+    param([string]$Rid)
+    if (Test-IsMacRid $Rid) { return 'diSerial' }
+    return 'diSerial.exe'
+}
+
+# The version a package reports.
+#
+# Windows: the apphost .exe carries the version resource, and that is what shipped for
+# months -- unchanged.
+#
+# macOS: the Mach-O apphost carries nothing, and FileVersionInfo answers with a record of
+# NULLS rather than failing. So it is read from the managed assembly in the BUILD output
+# (one level above publish/), which is a PE file on every target. Measured 2026-08-14:
+# 1.0.0+<git sha>, byte for byte what Windows reports.
+function Get-PackageVersionInfo {
+    param([string]$Rid, [string]$PublishDir)
+
+    if (Test-IsMacRid $Rid) {
+        $managed = Join-Path (Split-Path $PublishDir -Parent) 'diSerial.dll'
+        if (-not (Test-Path $managed)) {
+            throw "cannot read the version for ${Rid}: expected the managed assembly at $managed. The Mach-O apphost carries no version resource, so there is no fallback -- and an empty version would pass the agreement check below on two blanks."
+        }
+        return [System.Diagnostics.FileVersionInfo]::GetVersionInfo($managed)
+    }
+
+    return [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+        (Join-Path $PublishDir (Get-AppHostName $Rid)))
+}
+
+# Wrap the published payload in a .app bundle (E-4).
+#
+# SHAPE. Everything the program needs moves into Contents/MacOS; the licence texts and
+# COMPATIBILITY.txt stay BESIDE the bundle, because a recipient has to be able to read them
+# without knowing about "Show Package Contents".
+#
+# THE LAUNCHER IS NOT PACKAGING TASTE -- it is 00-STATUS P2-110.
+# On macOS .NET derives its culture from CFLocale, and that mapping DROPS the script
+# subtag: a Mac set to zh-Hans_HK (Simplified) arrives in the process as zh-HK, whose
+# default script is Traditional, so a Simplified user reads the whole UI in Traditional.
+# Measured 2026-08-14, and measured again the other way: when LANG IS set, .NET parses it
+# and the subtag survives (LANG=zh_Hans_HK.UTF-8 -> CurrentUICulture zh-Hans-HK).
+#
+# So the launcher hands .NET the value the OS actually holds. Three things about it are
+# deliberate:
+#
+#   * AppleLocale, not AppleLanguages[0]. AppleLocale is the very setting .NET's macOS path
+#     is trying to read; feeding it back REPAIRS that mapping rather than substituting a
+#     different preference. (AppleLanguages[0] is the better answer to "which UI language",
+#     and if the two ever disagree on a real machine this is the line to revisit.)
+#   * An existing LANG is never overwritten. Someone who exported LANG meant it.
+#   * A failure here is silent and harmless: no AppleLocale, no export, and the app behaves
+#     exactly as it did before this script existed.
+#
+# WARNING: the bundle identifier below is a placeholder derived from the company domain in the
+# product's own About text. It has to match whatever the Developer ID certificate is issued
+# against BEFORE anything is signed -- confirm it, do not inherit it.
+function New-MacAppBundle {
+    param([string]$PublishDir, [string]$ShortVersion, [string]$FullVersion)
+
+    $keepBeside = @('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES', 'COMPATIBILITY.txt')
+
+    $appDir = Join-Path $PublishDir 'diSerial.app'
+    $contents = Join-Path $appDir 'Contents'
+    $macOsDir = Join-Path $contents 'MacOS'
+
+    if (Test-Path $appDir) { Remove-Item -Recurse -Force $appDir }
+    New-Item -ItemType Directory -Path $macOsDir -Force | Out-Null
+
+    foreach ($item in Get-ChildItem $PublishDir -Force) {
+        if ($item.Name -eq 'diSerial.app') { continue }
+        if ($keepBeside -contains $item.Name) { continue }
+        Move-Item -LiteralPath $item.FullName -Destination (Join-Path $macOsDir $item.Name)
+    }
+
+    # The real apphost steps aside so the launcher can own the bundle's executable name.
+    $realHost = Join-Path $macOsDir 'diSerial'
+    if (-not (Test-Path $realHost)) { throw "no apphost at $realHost -- refusing to build a bundle around nothing" }
+    Move-Item -LiteralPath $realHost -Destination (Join-Path $macOsDir 'diSerial-bin')
+
+    $launcher = @(
+        '#!/bin/sh'
+        '# Give .NET the locale macOS actually holds (00-STATUS P2-110).'
+        '# Without this a Simplified Chinese Mac reads the whole UI in Traditional.'
+        'if [ -z "$LANG" ]; then'
+        '    _loc=$(defaults read -g AppleLocale 2>/dev/null)'
+        '    if [ -n "$_loc" ]; then'
+        '        LANG="$(printf ''%s'' "$_loc" | tr ''-'' ''_'').UTF-8"'
+        '        export LANG'
+        '    fi'
+        'fi'
+        'exec "$(dirname "$0")/diSerial-bin" "$@"'
+    ) -join "`n"
+
+    $launcherPath = Join-Path $macOsDir 'diSerial'
+    [System.IO.File]::WriteAllText($launcherPath, $launcher + "`n",
+        (New-Object System.Text.UTF8Encoding($false)))
+    & chmod '+x' $launcherPath
+    if ($LASTEXITCODE -ne 0) { throw "chmod +x failed for $launcherPath" }
+
+    $plist = @(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+        '<plist version="1.0">'
+        '<dict>'
+        '    <key>CFBundleName</key><string>diSerial</string>'
+        '    <key>CFBundleDisplayName</key><string>diSerial</string>'
+        '    <key>CFBundleExecutable</key><string>diSerial</string>'
+        '    <!-- CONFIRMED by the user 2026-08-15, after being carried as "to be decided"'
+        '         because signing was thought to require a match against the certificate.'
+        '         It does not, for Developer ID: codesign accepts any bundle id, and only the'
+        '         Mac App Store / certain entitlements need one registered in the portal.'
+        '         What does bite is that this string is effectively PERMANENT once shipped --'
+        '         change it and macOS treats the result as a different app: preferences gone,'
+        '         TCC grants re-prompted, and the user Gatekeeper approval reset. -->'
+        '    <key>CFBundleIdentifier</key><string>com.deshide.diserial</string>'
+        '    <key>CFBundlePackageType</key><string>APPL</string>'
+        "    <key>CFBundleShortVersionString</key><string>$ShortVersion</string>"
+        "    <key>CFBundleVersion</key><string>$ShortVersion</string>"
+        '    <key>CFBundleIconFile</key><string>diserial</string>'
+        '    <key>NSHighResolutionCapable</key><true/>'
+        '    <!-- MEASURED, not guessed (2026-08-15). otool -l on the published apphost reports'
+        '         LC_BUILD_VERSION minos 12.0, and the package is a single-file publish, so that'
+        '         one binary is the whole native surface -- nothing inside raises the floor.'
+        '         Below 12.0 dyld refuses to load it, so this is the honest lower bound.'
+        '         WITHOUT this key macOS does not block launch at all: an old system gets a'
+        '         vague failure instead of "requires macOS 12.0 or later".'
+        '         NOT verified by running on a real macOS 12 -- that needs a machine nobody'
+        '         here has. The claim is "matches what the binary declares", not "tested". -->'
+        '    <key>LSMinimumSystemVersion</key><string>12.0</string>'
+        '    <!-- Custom key. CFBundleShortVersionString must be numeric, so the +<git sha>'
+        '         has nowhere to live in the standard keys; without this the bundle cannot'
+        '         say WHICH build it is without being launched (P1-16). verify-publish.ps1'
+        '         reports this value. -->'
+        "    <key>DiSerialInformationalVersion</key><string>$FullVersion</string>"
+        '</dict>'
+        '</plist>'
+    ) -join "`n"
+
+    [System.IO.File]::WriteAllText((Join-Path $contents 'Info.plist'), $plist + "`n",
+        (New-Object System.Text.UTF8Encoding($false)))
+
+    # The icon (E-3). Committed as .icns beside the .ico rather than converted here: the
+    # conversion needs sips + iconutil, which exist only on macOS, and publish.ps1 has to run
+    # on Windows too. The .ico is committed for the same reason on that side.
+    #
+    # Contents/Resources is where CFBundleIconFile is resolved from, and the key carries the
+    # base name with no extension.
+    $iconSource = Join-Path $root 'src/diSerial.App/Assets/diserial.icns'
+    if (-not (Test-Path $iconSource)) { throw "no icon at $iconSource -- refusing to build a bundle that silently falls back to the generic system icon (E-3)" }
+
+    $resourcesDir = Join-Path $contents 'Resources'
+    New-Item -ItemType Directory -Path $resourcesDir -Force | Out-Null
+    Copy-Item -LiteralPath $iconSource -Destination (Join-Path $resourcesDir 'diserial.icns')
+
+    # Self-check, same reason as the launcher's below: a missing icon does not fail anything,
+    # it just quietly shows the generic app icon -- which is exactly how E-3 stayed open
+    # without anyone noticing.
+    $iconLanded = Join-Path $resourcesDir 'diserial.icns'
+    if (-not (Test-Path $iconLanded)) { throw "icon did not land at $iconLanded" }
+    if ((Get-Item $iconLanded).Length -lt 1024) { throw "icon at $iconLanded is suspiciously small ($((Get-Item $iconLanded).Length) bytes)" }
+
+    # Read the launcher back and confirm it is executable. An unreadable or non-executable
+    # launcher produces an app that simply does not open, and macOS reports that as a
+    # generic "the application cannot be opened" with nothing pointing here.
+    if (-not (Test-Path $launcherPath)) { throw "launcher missing after write: $launcherPath" }
+    $mode = (& stat -f '%Lp' $launcherPath)
+    if ($mode -notmatch '[1357]$') { throw "launcher at $launcherPath is not executable (mode $mode)" }
+
+    return $appDir
+}
 
 function Read-DevSwitch {
     param([string]$Name)
@@ -97,7 +327,7 @@ Write-Output ""
 
 if ($debugMode -ne 'false') {
     Write-Output "REFUSING: debugMode is '$debugMode'."
-    Write-Output "  Set it to false in src\diSerial.App\diserial.dev.json, publish, then set it back."
+    Write-Output "  Set it to false in src/diSerial.App/diserial.dev.json, publish, then set it back."
     Write-Output "  This script does NOT flip it for you: the csproj gate"
     Write-Output "  (CheckDeveloperSwitchesBeforePublish) exists so that shipping developer form"
     Write-Output "  has to be a deliberate act. Automating the flip would defeat it."
@@ -131,7 +361,7 @@ foreach ($name in $licenseFiles) {
 foreach ($r in $Rid) {
     $note = Join-Path $notesDir "COMPATIBILITY.$r.txt"
     if (-not (Test-Path $note)) {
-        throw "no compatibility note for '$r' at $note -- every package has to say which machines it is for, and with two downloads a user can pick the wrong one"
+        throw "no compatibility note for '$r' at $note -- every package has to say which machines it is for, and with several downloads a user can pick the wrong one"
     }
 }
 
@@ -152,7 +382,7 @@ $summary = @()
 
 foreach ($currentRid in $Rid) {
 
-$outDir = Join-Path $root "src\diSerial.App\bin\Release\net10.0\$currentRid\publish"
+$outDir = Join-Path $root "src/diSerial.App/bin/Release/net10.0/$currentRid/publish"
 
 Write-Output ""
 Write-Output "=== publishing $currentRid ==="
@@ -224,8 +454,8 @@ foreach ($name in $licenseFiles) {
     Write-Output "copied $name into the package ($((Get-Item $src).Length) bytes)"
 }
 
-# The compatibility note (user decision 2026-08-06). Two downloads exist now, so each one
-# has to be able to say what it is -- a user who took the wrong one has no other way to
+# The compatibility note (user decision 2026-08-06). Several downloads exist now, so each
+# one has to be able to say what it is -- a user who took the wrong one has no other way to
 # find out, and for the x86 package on an Arm64 machine the symptom (P2-75, an undersized
 # UI) does not look like "wrong download" at all.
 #
@@ -235,9 +465,23 @@ $noteSrc = Join-Path $notesDir "COMPATIBILITY.$currentRid.txt"
 Copy-Item $noteSrc (Join-Path $outDir 'COMPATIBILITY.txt') -Force
 Write-Output "copied COMPATIBILITY.txt into the package ($((Get-Item $noteSrc).Length) bytes)"
 
+# Read the version BEFORE the bundle step: on macOS it comes from the build output, and
+# building the bundle moves the publish payload around underneath us.
+$info = Get-PackageVersionInfo -Rid $currentRid -PublishDir $outDir
+
+if (Test-IsMacRid $currentRid) {
+    # CFBundleShortVersionString has to be numeric-only, so the +<git sha> is dropped here
+    # and here alone. The full value still travels: it is compiled into the assembly and is
+    # what the startup banner prints (P1-16).
+    $shortVersion = ($info.ProductVersion -split '\+')[0]
+    $bundle = New-MacAppBundle -PublishDir $outDir -ShortVersion $shortVersion `
+                               -FullVersion $info.ProductVersion
+    Write-Output ""
+    Write-Output "built $([System.IO.Path]::GetFileName($bundle)) (CFBundleShortVersionString = $shortVersion)"
+    Write-Output "  the launcher inside it exports LANG from AppleLocale -- that is P2-110, not packaging"
+}
+
 $files = Get-ChildItem $outDir -Recurse -File
-$exe = Join-Path $outDir 'diSerial.exe'
-$info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
 
 Write-Output ""
 Write-Output "output: $outDir"

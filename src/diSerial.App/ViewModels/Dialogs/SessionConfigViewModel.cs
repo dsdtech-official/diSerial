@@ -94,6 +94,34 @@ public abstract class SessionConfigViewModel : LocalizedViewModelBase
         ? null
         : AvailablePorts.FirstOrDefault(p => p.PortName == portName);
 
+    /// <summary>
+    /// Turns whatever is in a port box into the record a session will be opened with (P1-4).
+    ///
+    /// <para>⭐ <b>A name the enumerator knows keeps its
+    /// <see cref="SerialPortInfo.Description"/></b>, so the session still shows "Prolific
+    /// USB-to-Serial"; anything else becomes a bare record carrying just the typed name.</para>
+    ///
+    /// <para>⛔ <b>An unknown name is deliberately NOT refused here.</b> That is the whole point
+    /// of the feature: on macOS users know the exact <c>/dev/cu.usbserial-XXXX</c> path, and a
+    /// dialog that only accepts what we enumerated would put our own filtering between them and
+    /// their device. A name with nothing behind it fails at open time with "that serial port does
+    /// not exist -- it may have been unplugged, or the name may be wrong", which is the sentence
+    /// P2-107 exists to make reachable.</para>
+    ///
+    /// <para>⚠️ <b>Matching is exact, not case-insensitive.</b> Typing <c>com5</c> when the list
+    /// has <c>COM5</c> yields a bare record rather than the enumerated one -- the port still
+    /// opens (Windows does not care about case), it just shows no description. Folding case here
+    /// would mean deciding it for <c>/dev/</c> paths too, where it is wrong.</para>
+    /// </summary>
+    protected SerialPortInfo? FromText(string? text)
+    {
+        var name = text?.Trim();
+
+        return string.IsNullOrEmpty(name)
+            ? null
+            : ByName(name) ?? new SerialPortInfo { PortName = name };
+    }
+
     protected void Repopulate(IReadOnlyList<SerialPortInfo> ports)
     {
         AvailablePorts.Clear();

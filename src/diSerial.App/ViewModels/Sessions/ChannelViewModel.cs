@@ -26,14 +26,94 @@ public sealed partial class ChannelViewModel : ViewModelBase
     /// <summary>通道 B 的固定配色（绿）。</summary>
     public const string ColorB = "#1D9E75";
 
+    /// <summary>
+    /// ⛔ <b>P2-115.</b> Longest default alias the frame row's channel column can show.
+    ///
+    /// <para><b>Measured, not chosen</b> (2026-08-15, from the accessibility tree rather than by
+    /// counting characters on a screenshot -- the two answers differed by 2 characters, and those
+    /// 2 were the difference between fitting and overlapping):</para>
+    ///
+    /// <code>
+    ///   column          624..754  = 130 px   (LogPanelView ColumnDefinitions "110,60,130,*")
+    ///   text starts at  644                  (Margin 10 + Border 3 + Spacing 7)
+    ///   available       754 - 644 = 110 px
+    ///   advance         7.2 px/char          (12pt Menlo, 0.6 em; four samples agreed)
+    ///   capacity        110 / 7.2 = 15.3 characters
+    ///   "TX -> " costs  5                    (Frame.Channel.Injected is the longer template)
+    ///   alias budget    15 - 5    = 10
+    /// </code>
+    ///
+    /// <para>⚠️ <b>This is the whole channel text's budget minus the template</b>, not the
+    /// column's capacity. Getting that wrong is what made the first two attempts land on 17 and
+    /// then 12, both of which still overlap.</para>
+    /// </summary>
+    private const int MaxDefaultAliasLength = 10;
+
+    /// <summary>
+    /// The prefix every macOS serial device node carries. It is identical on every row, so it
+    /// carries no information in a column this narrow.
+    /// </summary>
+    private const string UnixPortPrefix = "/dev/cu.";
+
     public ChannelViewModel(ChannelId id, SerialPortInfo port)
     {
         Id = id;
         Port = port;
 
-        // ⚠️ 默认取端口名，不是「A」/「B」——「A」既是槽位又当名字用会让
-        // 状态栏出现 A:COM6「A」这种自我重复，而端口名是此刻唯一已知的事实。
-        Alias = port.PortName;
+        // The alias starts as a readable form of the port name, never as "A"/"B": a letter that
+        // is both the slot and the name produces self-repeating labels, and the port is the only
+        // fact known at this moment (01-spec 4.13).
+        Alias = DefaultAliasFor(port.PortName);
+    }
+
+    /// <summary>
+    /// ⛔ <b>P2-115.</b> The alias a channel starts with: the port name, shortened enough to fit
+    /// the frame row's channel column.
+    ///
+    /// <para><b>Why the port name cannot be used as-is.</b> On macOS a port is
+    /// <c>/dev/cu.usbserial-AQ8DUVGD</c> -- 26 characters where Windows has <c>COM11</c>. The
+    /// column is sized for the Windows length, so the label overflowed and was drawn on top of
+    /// the data column: two texts in the same pixels, neither readable. ⚠️ <b>The code is shared
+    /// and the column is shared; only the platform's own string length differs.</b></para>
+    ///
+    /// <para><b>The rule</b> (user decision, 2026-08-15):</para>
+    /// <list type="number">
+    ///   <item>drop the <c>/dev/cu.</c> prefix -- lossless, identical on every row;</item>
+    ///   <item>if still too long, keep what follows the last <c>-</c>. For the family this
+    ///         product exists for (<c>usbserial-&lt;serial&gt;</c>) that tail IS the device
+    ///         serial number, which is exactly what tells two identical adapters apart;</item>
+    ///   <item>with no <c>-</c> to cut at (<c>usbmodem14201</c>, <c>SLAB_USBtoUART</c>), keep the
+    ///         leading <see cref="MaxDefaultAliasLength"/> characters.</item>
+    /// </list>
+    ///
+    /// <para>⚠️ <b>The cap is applied to the tail as well, and that case is NOT in the rule as
+    /// stated</b> -- it was left open. A vendor whose serial number runs past
+    /// <see cref="MaxDefaultAliasLength"/> would otherwise walk straight back into the overflow
+    /// this exists to prevent, so the obvious intent is followed rather than the literal wording.</para>
+    ///
+    /// <para>⭐ <b>Deliberately not gated on the platform.</b> It is driven by the data, not by
+    /// <c>OperatingSystem.IsMacOS()</c>: <c>COM11</c> has no prefix to strip and is under the
+    /// cap, so Windows keeps exactly what it had. That also means every case below is
+    /// exercisable on both machines -- the same reason
+    /// <c>SystemPortEnumerator.IsMacOsCallinNode</c> is platform-free.</para>
+    /// </summary>
+    public static string DefaultAliasFor(string portName)
+    {
+        if (string.IsNullOrEmpty(portName)) return string.Empty;
+
+        var name = portName.StartsWith(UnixPortPrefix, StringComparison.Ordinal)
+            ? portName[UnixPortPrefix.Length..]
+            : portName;
+
+        if (name.Length <= MaxDefaultAliasLength) return name;
+
+        var lastDash = name.LastIndexOf('-');
+        if (lastDash >= 0 && lastDash < name.Length - 1)
+        {
+            name = name[(lastDash + 1)..];
+        }
+
+        return name.Length <= MaxDefaultAliasLength ? name : name[..MaxDefaultAliasLength];
     }
 
     public ChannelId Id { get; }
@@ -58,29 +138,48 @@ public sealed partial class ChannelViewModel : ViewModelBase
     public string PortName => Port.PortName;
 
     /// <summary>
-    /// ⭐ <b>帧行通道列用的标签</b>：<c>COM6</c>（没起过名字）或 <c>COM6 · PLC</c>（起过）。
-    ///
-    /// ⚠️ <b>原先这里是 <c>A · PLC</c>，2026-08-01 换成端口名。</b>
-    /// 理由：<c>A</c> 曾经有意义是因为它<b>可以被交换</b>——「谁是 A」是一个
-    /// 用户需要确认、也能改变的事实。<b>交换 A/B 随 P0-9 删除之后</b>，
-    /// <c>A</c> 退化成「对话框里第一个下拉框」，不指向任何用户关心的东西，
-    /// 而真正的身份（哪个物理口）反倒不在行里。见 01-spec 4.13。
-    ///
-    /// ⚠️ 分隔符是 <b>标点不是文案</b>，刻意不进资源文件 —— 沿用原 <c>A · PLC</c> 的先例。
-    /// 进了资源文件就得在语言切换时重算每一行（上限 500 行），
-    /// 而这里没有任何一个字需要翻译。
+    /// The alias this channel starts with. Everything the user has not renamed reads as this.
     /// </summary>
-    public string InlineLabel => HasCustomAlias ? $"{PortName} · {Alias}" : PortName;
+    public string DefaultAlias => DefaultAliasFor(PortName);
 
     /// <summary>
-    /// 用户是否给这一路起过名字 —— 即别名已不再等于端口名。
+    /// ⭐ <b>The label the frame row's channel column shows</b>: <b>the alias, and only the
+    /// alias</b>.
     ///
-    /// 用途：没起过名字时只显示端口名，不显示 <c>COM6「COM6」</c> / <c>COM6 · COM6</c>
-    /// 这种自我重复。<b>状态栏与帧行共用这一条判据</b>，两处不会各说各话。
-    /// 判据用「不等于端口名」而不是「非空」，因为默认值本身就是端口名。
+    /// <para>⛔ <b>It used to be <c>COM6 · PLC</c></b> -- port name and alias together (01-spec
+    /// 4.13 clause 6). Changed 2026-08-15 (user decision) as the fix for P2-115: the port name is
+    /// <b>identical on every row of the session</b>, so in a 110px column it spends the width
+    /// that the part which actually varies needs. On macOS it did not merely crowd the data
+    /// column, it was drawn on top of it.</para>
+    ///
+    /// <para>⚠️ <b>The port name is not lost</b>, it stops being repeated per row: the status bar
+    /// still writes <c>port「alias」</c> and the side panel still lists port against colour. The
+    /// export keeps its separate <c>Port</c> and <c>Alias</c> columns either way.</para>
+    ///
+    /// <para>⚠️ Falls back to <see cref="DefaultAlias"/> when the user clears the box, so the
+    /// column can never go blank -- the old code reached the same outcome through
+    /// <see cref="HasCustomAlias"/>.</para>
+    /// </summary>
+    public string InlineLabel => string.IsNullOrWhiteSpace(Alias) ? DefaultAlias : Alias;
+
+    /// <summary>
+    /// Whether the user has named this channel -- that is, the alias is no longer the one it
+    /// started with.
+    ///
+    /// <para>⛔ <b>The comparison is against <see cref="DefaultAlias"/>, not the port name</b>
+    /// (changed 2026-08-15 with P2-115). Once the default stopped being the port name verbatim,
+    /// comparing against the port name would have made <b>every</b> macOS channel look renamed
+    /// from the first frame -- and that answer is consumed in three places, one of which writes
+    /// files: the status bar would print <c>port「port-derived-name」</c>, and
+    /// <c>ResolveChannelAlias</c> would fill the exported <c>Alias</c> column for channels nobody
+    /// ever named, destroying the "named" / "never named" distinction 01-spec 4.13 clause 8
+    /// promises a parser. ⚠️ <b>Nothing would have thrown.</b></para>
+    ///
+    /// <para>⭐ A user who types the default back in by hand still counts as "never named",
+    /// which is the same forgiving behaviour the port-name comparison had.</para>
     /// </summary>
     public bool HasCustomAlias =>
-        !string.IsNullOrWhiteSpace(Alias) && !string.Equals(Alias, PortName, StringComparison.Ordinal);
+        !string.IsNullOrWhiteSpace(Alias) && !string.Equals(Alias, DefaultAlias, StringComparison.Ordinal);
 
     /// <summary>
     /// 别名输入框的占位文字，形如「COM6 的别名」。
