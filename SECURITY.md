@@ -99,7 +99,7 @@ Everything the application writes lives in **one** directory:
 
 ```
 %AppData%\diSerial\        Windows
-~/.config/diSerial/        macOS
+~/Library/Application Support/diSerial/    macOS
 ```
 
 | What | Where, inside that directory |

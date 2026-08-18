@@ -220,7 +220,7 @@ User settings are stored in `settings.db` in the configuration directory:
 
 ```
 %AppData%\diSerial\        Windows
-~/.config/diSerial/        macOS
+~/Library/Application Support/diSerial/    macOS
 ```
 
 One directory holds everything the application writes: `settings.db`, `recordings.db` and the `logs`
