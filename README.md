@@ -24,6 +24,30 @@
 
 ## Downloads
 
+**The simplest route is the app store for your platform.** It installs and updates itself, the
+build is signed, and there is no checksum to verify by hand:
+
+| | |
+|---|---|
+| **Windows** | [**Microsoft Store**](https://apps.microsoft.com/detail/9pljclpgnzcw) |
+| **macOS** 12 or later, Apple Silicon | [**Mac App Store**](https://apps.apple.com/app/id6802570917) |
+
+> **The store builds are the same program** — no features added, none removed.
+> They can be **ahead of the packages below**: bug-fix releases go to the stores first.
+> If you want the newest build, take the store one.
+
+### Direct download
+
+Take these if you would rather not use a store, need a 32-bit or Arm build of Windows, or want
+to check the binary against the source in this repository.
+
+⬇ **[Download the latest release](https://github.com/dsdtech-official/diSerial/releases/latest)**
+
+That link always opens the newest release, whatever its version number.
+**The packages are at the bottom of that page, under a heading called `Assets`** — open it if it
+is collapsed, and take the one `.zip` that matches your machine. ([Every release, including older
+ones](https://github.com/dsdtech-official/diSerial/releases).)
+
 Each release ships **four** packages, all self-contained — there is no .NET runtime to install:
 
 | Package | For |
