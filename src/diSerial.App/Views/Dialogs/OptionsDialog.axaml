@@ -1,0 +1,89 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="420"
+        x:Class="DiSerial.App.Views.Dialogs.OptionsDialog"
+        x:DataType="dialogs:OptionsDialogViewModel"
+        Title="{loc:Translate Dialog.Options.Title}"
+        Width="600" Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Window.Resources>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="Transparent" />
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="#14000000" />
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill" Color="Transparent" />
+  </Window.Resources>
+
+  <DockPanel Margin="16">
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="8" Margin="0,14,0,0">
+      <Button Content="{loc:Translate Common.Cancel}" Command="{Binding RejectCommand}" />
+      <Button Content="{loc:Translate Common.Ok}" IsDefault="True"
+              Command="{Binding AcceptCommand}" />
+    </StackPanel>
+
+    <TabControl Classes="settings">
+
+      <TabItem Header="{loc:Translate Dialog.Options.Group.Connection}">
+        <Border Classes="tabPane">
+        <StackPanel Spacing="10">
+          <CheckBox Content="{loc:Translate Dialog.Options.AutoReconnect}"
+                    IsChecked="{Binding AutoReconnect}" />
+
+          <TextBlock Text="{loc:Translate Dialog.Options.ReconnectNote}"
+                     TextWrapping="Wrap" Opacity="0.75" Margin="24,0,0,4" />
+
+          <Grid ColumnDefinitions="Auto,110" RowDefinitions="Auto,Auto"
+                ColumnSpacing="12" RowSpacing="8" Margin="24,0,0,0"
+                IsEnabled="{Binding AutoReconnect}">
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                       Text="{loc:Translate Dialog.Options.Attempts}" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ReconnectAttempts}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                       Text="{loc:Translate Dialog.Options.Delay}" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ReconnectDelayMs}" />
+          </Grid>
+        </StackPanel>
+        </Border>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate Dialog.Options.Group.Display}">
+        <Border Classes="tabPane">
+        <Grid ColumnDefinitions="Auto,120" RowDefinitions="Auto" ColumnSpacing="12"
+              VerticalAlignment="Top">
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                     Text="{loc:Translate Dialog.Options.MaxFrames}" />
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding MaxDisplayedFrames}" />
+        </Grid>
+        </Border>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate Dialog.Options.Group.Reception}">
+        <Border Classes="tabPane">
+        <StackPanel Spacing="10">
+          <CheckBox Content="{loc:Translate Dialog.Options.IdleGapAuto}"
+                    IsChecked="{Binding IdleGapAuto}" />
+
+          <TextBlock Text="{loc:Translate Dialog.Options.IdleGapNote}"
+                     TextWrapping="Wrap" Opacity="0.75" Margin="24,0,0,4" />
+
+          <Grid ColumnDefinitions="Auto,110" RowDefinitions="Auto"
+                ColumnSpacing="12" Margin="24,0,0,0"
+                IsEnabled="{Binding !IdleGapAuto}">
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                       Text="{loc:Translate Dialog.Options.IdleGap}" />
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding IdleGapMs}" />
+          </Grid>
+        </StackPanel>
+        </Border>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>

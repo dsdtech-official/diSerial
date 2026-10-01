@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="260"
+        x:Class="DiSerial.App.Views.Dialogs.FrameDataDialog"
+        x:DataType="dialogs:FrameDataDialogViewModel"
+        Title="{Binding Title}"
+        Width="620" Height="300"
+        MinWidth="380" MinHeight="200"
+        WindowStartupLocation="CenterOwner">
+
+  <DockPanel Margin="16" LastChildFill="True">
+
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="{loc:Translate Common.Close}" IsCancel="True"
+              Command="{Binding CloseCommand}" />
+    </StackPanel>
+
+    <TextBox Name="DataBox"
+             Classes="mono"
+             Text="{Binding Data, Mode=OneWay}"
+             IsReadOnly="True"
+             AcceptsReturn="True"
+             TextWrapping="NoWrap"
+             HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+             HorizontalContentAlignment="Left" VerticalContentAlignment="Top"
+             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+  </DockPanel>
+</Window>

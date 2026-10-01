@@ -1,0 +1,34 @@
+diSerial -- which machines this package is for
+==============================================
+
+THIS IS THE x64 (64-bit Intel/AMD) PACKAGE.
+
+Use this one on:
+
+  * 64-bit Windows on an Intel or AMD processor -- runs natively.
+    This is the right package for almost every desktop and laptop sold
+    in the last fifteen years.
+
+Do NOT use this one on:
+
+  * 32-bit Windows
+    -> download the x86 package instead. This one will not start there.
+
+  * Windows on Arm (Snapdragon, Surface Pro X and similar)
+    -> download the arm64 package instead. This one will start under
+       emulation, but the arm64 package runs natively and is faster.
+
+Not sure which machine you have? Settings -> System -> About, look at
+"System type". If it says "ARM-based processor", take the arm64 package.
+If it says "32-bit operating system", take the x86 package. Otherwise
+this is the right one.
+
+System requirements (same for all packages):
+
+  * Windows 10 version 1607 or later. Windows 7, 8 and 8.1 are not
+    supported.
+  * Nothing to install. The package is self-contained -- no .NET runtime
+    is required.
+
+The whole folder belongs together. Copy all of it, then run
+diSerial.exe.

@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="380"
+        x:Class="DiSerial.App.Views.Dialogs.AutoAnswerRuleDialog"
+        x:DataType="dialogs:AutoAnswerRuleDialogViewModel"
+        Title="{Binding Title}"
+        MinWidth="420" MaxWidth="520" SizeToContent="WidthAndHeight"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="20" Spacing="14">
+    <TextBlock Text="{Binding Title}" FontSize="16" />
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding NameLabel}" Opacity="0.85" />
+      <TextBox Name="NameBox" Text="{Binding Name}" MaxLength="{Binding MaxNameLength}" />
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding TriggerLabel}" Opacity="0.85" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox Grid.Column="0" Text="{Binding TriggerText}" />
+        <CheckBox Grid.Column="1" Margin="8,0,0,0" Content="{loc:Translate Send.FormatHex}"
+                  IsChecked="{Binding IsTriggerHex}" />
+      </Grid>
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding ResponseLabel}" Opacity="0.85" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox Grid.Column="0" Text="{Binding ResponseText}" />
+        <CheckBox Grid.Column="1" Margin="8,0,0,0" Content="{loc:Translate Send.FormatHex}"
+                  IsChecked="{Binding IsResponseHex}" />
+      </Grid>
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Text="{Binding TerminatorLabel}" Opacity="0.85" />
+      <ComboBox HorizontalAlignment="Stretch"
+                ItemsSource="{Binding TerminatorChoices}"
+                SelectedValue="{Binding Terminator}"
+                SelectedValueBinding="{Binding Value}"
+                DisplayMemberBinding="{Binding DisplayName}" />
+    </StackPanel>
+
+    <TextBlock Text="{Binding Error}" FontSize="12" TextWrapping="Wrap"
+               Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+               IsVisible="{Binding HasError}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{Binding CancelText}" Command="{Binding CancelCommand}" />
+      <Button Content="{Binding ConfirmText}" IsDefault="True" Command="{Binding ConfirmCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

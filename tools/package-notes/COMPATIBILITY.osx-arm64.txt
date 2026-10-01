@@ -1,0 +1,40 @@
+diSerial -- which machines this package is for
+==============================================
+
+THIS IS THE macOS APPLE SILICON PACKAGE.
+
+Use this one on:
+
+  * Any Mac with Apple silicon -- M1, M2, M3, M4 and later.
+    Runs natively.
+
+Do NOT use this one on:
+
+  * Intel Macs. This package will not start there.
+  * Windows machines -> download one of the Windows packages instead.
+
+Not sure which Mac you have? Apple menu -> About This Mac. If "Chip"
+says "Apple M...", this is the right package.
+
+System requirements:
+
+  * Nothing to install. The package is self-contained -- no .NET runtime
+    is required.
+
+The whole folder belongs together. Copy all of it, then open diSerial.app.
+
+The licence texts sit BESIDE the app rather than inside it, so that you
+can read them without opening the bundle.
+
+A note on serial ports on macOS
+-------------------------------
+
+Serial ports appear as /dev/cu.* entries. diSerial lists only the
+"cu" (callout) form on purpose: the matching "tty" (callin) form of the
+same device waits for a carrier signal when opened, which looks like the
+program hanging with no error.
+
+If a USB adapter does not appear in the port list, it usually needs its
+vendor's driver installed. diSerial does not identify devices by
+USB vendor or product ID, so any adapter the system exposes as a serial
+port will work.

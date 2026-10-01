@@ -1,0 +1,30 @@
+diSerial -- which machines this package is for
+==============================================
+
+THIS IS THE arm64 PACKAGE.
+
+Use this one on:
+
+  * Windows on Arm -- Snapdragon X, Surface Pro X and similar.
+    Runs natively: correct display scaling, and hardware rendering instead
+    of the software fallback an emulated build lands on.
+
+Do NOT use this one on:
+
+  * Intel or AMD machines. This one will not start there.
+    -> 64-bit: download the x64 package.
+    -> 32-bit: download the x86 package.
+
+Not sure which machine you have? Settings -> System -> About, look at
+"System type". If it says "ARM-based processor", this is the right
+package.
+
+System requirements (same for all packages):
+
+  * Windows 10 version 1607 or later. Windows 7, 8 and 8.1 are not
+    supported.
+  * Nothing to install. The package is self-contained -- no .NET runtime
+    is required.
+
+The whole folder belongs together. Copy all of it, then run
+diSerial.exe.

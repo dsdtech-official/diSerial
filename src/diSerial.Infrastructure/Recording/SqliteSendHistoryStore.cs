@@ -1,43 +1,42 @@
 using DiSerial.Core.Abstractions;
 using DiSerial.Infrastructure.Diagnostics;
+using DiSerial.Infrastructure.Storage;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
 namespace DiSerial.Infrastructure.Recording;
 
-/// <summary>
-/// <see cref="ISendHistoryStore"/> on the recordings database. Contract, and the reasoning
-/// behind identity and the synchronous signatures, is on the interface.
-///
-/// <b>A connection per call, not one held open.</b> These calls are rare (once per session
-/// load, once per send) and touch at most a hundred short rows, while
-/// <see cref="SqliteSessionRecorder"/> may hold its own connection to the same file for
-/// minutes at a time. Opening briefly keeps the two independent — WAL, already on for this
-/// file, is what makes a reader and a writer coexist — and it removes any question about
-/// whether this store outlives a recording. A held connection would buy nothing measurable
-/// and would couple two lifetimes that have no reason to know about each other.
-/// </summary>
+// Persist sent command history.
 public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory loggerFactory)
     : ISendHistoryStore
 {
-    /// <summary>
-    /// Rows kept on disk (user decision 2026-08-02). The dropdown shows fewer — see
-    /// <see cref="ISendHistoryStore.Load"/>: the tail stays around so an entry that fell off
-    /// the visible list is still there to be promoted when it is next used.
-    /// </summary>
     public const int Capacity = 100;
 
     private readonly ILogger _logger = loggerFactory.CreateLogger("Recording.SendHistory");
     private readonly Lock _gate = new();
 
+    internal Func<DateTimeOffset> UtcNow { get; init; } = static () => DateTimeOffset.UtcNow;
+
+    // Choose the next history time.
+    internal static DateTimeOffset NextLastUsedAt(DateTimeOffset now, DateTimeOffset? latest) =>
+        latest is { } previous && previous >= now ? previous.AddTicks(1) : now;
+
+    // Read the latest history time.
+    private static DateTimeOffset? LatestLastUsedAt(SqliteConnection connection)
+    {
+        using var cmd = connection.CreateCommand();
+        cmd.CommandText = RecordingSchema.LatestSendHistoryUse;
+
+        return cmd.ExecuteScalar() is string text
+            ? DateTimeOffset.Parse(text, null, System.Globalization.DateTimeStyles.RoundtripKind)
+            : null;
+    }
+
+    // Load saved send history.
     public IReadOnlyList<SendHistoryEntry> Load(int limit)
     {
         if (limit <= 0) return [];
 
-        // ⚠️ Clamped, not `new List<>(limit)`. The caller's limit is a request, not a promise
-        // about size: `Load(int.MaxValue)` — a perfectly reasonable way to say "everything" —
-        // asked for an int.MaxValue-element array and threw. The table cannot exceed
-        // Capacity anyway, so that is the only sensible hint. Found by a test, not by reading.
         var entries = new List<SendHistoryEntry>(Math.Min(limit, Capacity));
 
         try
@@ -64,7 +63,6 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         }
         catch (Exception ex) when (IsStorageFailure(ex))
         {
-            // Degrade to "no history", never to "cannot send". See the interface remarks.
             _logger.LogWarning(ex, "Could not read send history; continuing without it");
             return [];
         }
@@ -72,6 +70,7 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         return entries;
     }
 
+    // Save a send history entry.
     public void Record(string text, bool isHexMode, string? lineEnding)
     {
         if (string.IsNullOrEmpty(text)) return;
@@ -81,7 +80,7 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
             lock (_gate)
             {
                 using var connection = Open();
-                var now = DateTimeOffset.UtcNow.ToString("O");
+                var now = NextLastUsedAt(UtcNow(), LatestLastUsedAt(connection)).ToString("O");
 
                 using (var upsert = connection.CreateCommand())
                 {
@@ -101,11 +100,11 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         }
         catch (Exception ex) when (IsStorageFailure(ex))
         {
-            // The bytes already went out; failing here must not look like a failed send.
             _logger.LogWarning(ex, "Could not record send history entry");
         }
     }
 
+    // Delete a send history entry.
     public void Delete(string text, bool isHexMode)
     {
         try
@@ -122,12 +121,11 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         }
         catch (Exception ex) when (IsStorageFailure(ex))
         {
-            // ⚠️ Worth a louder level than the other two: the user asked for something to be
-            // forgotten and it was not. Silence here would be the tool lying about a deletion.
             _logger.LogError(ex, "Could not delete send history entry");
         }
     }
 
+    // Count saved send entries.
     public int Count()
     {
         try
@@ -142,17 +140,12 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         }
         catch (Exception ex) when (IsStorageFailure(ex))
         {
-            // Only feeds a confirmation message; a wrong number must not block the dialog.
             _logger.LogWarning(ex, "Could not count send history entries");
             return 0;
         }
     }
 
-    /// <summary>
-    /// ⛔ <b>Deliberately not wrapped in the usual catch.</b> Every other method here degrades
-    /// quietly; this one must not. See <see cref="ISendHistoryStore.Clear"/> — a silent failure
-    /// would tell the user their payloads are gone while they are still on disk.
-    /// </summary>
+    // Clear saved send history.
     public void Clear()
     {
         lock (_gate)
@@ -164,33 +157,22 @@ public sealed class SqliteSendHistoryStore(IAppPaths paths, ILoggerFactory logge
         }
     }
 
-    /// <summary>
-    /// Opens the file and makes sure the table is there.
-    ///
-    /// The DDL runs on every open rather than once per process: it is
-    /// <c>CREATE TABLE IF NOT EXISTS</c> against an open connection, so the cost is noise, and
-    /// it removes an ordering dependency — <b>this store may well run before anything has ever
-    /// been recorded</b>, so the database file itself may not exist yet.
-    /// </summary>
+    public const int BusyTimeoutSeconds = 1;
+
+    // Open the send history database.
     private SqliteConnection Open()
     {
-        var connection = new SqliteConnection($"Data Source={paths.RecordingDatabasePath}");
+        var connection = new SqliteConnection(
+            $"Data Source={paths.RecordingDatabasePath};Default Timeout={BusyTimeoutSeconds}");
         connection.Open();
 
-        using var ddl = connection.CreateCommand();
-        ddl.CommandText = RecordingSchema.SendHistoryDdl;
-        ddl.ExecuteNonQuery();
+        RecordingDatabase.Ensure(connection, paths.RecordingDatabasePath, _logger);
 
         return connection;
     }
 
-    /// <summary>
-    /// What counts as "storage misbehaved" rather than "this code is wrong".
-    ///
-    /// ⚠️ Deliberately not a bare <c>catch</c>: a bug in this file should surface, not hide
-    /// behind a warning about the disk. Locked file, missing directory, and permission
-    /// problems are the real-world cases and they must not reach the send path.
-    /// </summary>
+    // Identify handled storage errors.
     private static bool IsStorageFailure(Exception ex) =>
-        ex is SqliteException or IOException or UnauthorizedAccessException or FormatException;
+        ex is SchemaTooNewException or SqliteException or IOException
+            or UnauthorizedAccessException or FormatException;
 }

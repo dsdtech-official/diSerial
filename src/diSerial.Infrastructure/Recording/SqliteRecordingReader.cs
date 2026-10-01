@@ -4,24 +4,25 @@ using DiSerial.Core.Abstractions;
 using DiSerial.Core.Models;
 using DiSerial.Infrastructure.Diagnostics;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DiSerial.Infrastructure.Recording;
 
-/// <summary>
-/// <see cref="IRecordingReader"/> 的 SQLite 实现。表结构见 <see cref="RecordingSchema"/>。
-///
-/// ⚠️ <b>每次调用自己开一条连接、用完即关</b>：读是偶发的（只在导出时），
-/// 而记录器那边的连接归它自己的写盘任务独占。两边不共享连接可以省掉一整类并发问题，
-/// 代价只是导出时多一次 open —— WAL 模式下读写本来就不互斥。
-/// </summary>
-public sealed class SqliteRecordingReader(IAppPaths paths) : IRecordingReader
+// Read recorded frame batches.
+public sealed class SqliteRecordingReader(IAppPaths paths, ILogger? logger = null)
+    : IRecordingReader
 {
+    private readonly ILogger _logger = logger ?? NullLogger.Instance;
+
+    // Stream recorded batch frames.
     public async IAsyncEnumerable<SerialFrame> ReadBatchAsync(
         long batchId,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await using var conn = new SqliteConnection($"Data Source={paths.RecordingDatabasePath}");
         await conn.OpenAsync(cancellationToken);
+        RecordingDatabase.CheckVersion(conn, paths.RecordingDatabasePath);
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -30,28 +31,49 @@ public sealed class SqliteRecordingReader(IAppPaths paths) : IRecordingReader
             """;
         cmd.Parameters.AddWithValue("$b", batchId);
 
+        long badChannel = 0, badDirection = 0, badFlags = 0, firstBadSeq = -1;
+
         await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
+            var seq = reader.GetInt64(0);
+
+            if (!RecordingEnumText.TryChannel(reader.GetInt64(4), out var channel)) badChannel++;
+            if (!RecordingEnumText.TryDirection(reader.GetInt64(5), out var direction)) badDirection++;
+            if (!RecordingEnumText.TryFlags(reader.GetInt64(6), out var flags)) badFlags++;
+
+            if (firstBadSeq < 0 && (badChannel + badDirection + badFlags) > 0) firstBadSeq = seq;
+
             yield return new SerialFrame
             {
-                Sequence = reader.GetInt64(0),
+                Sequence = seq,
                 Timestamp = DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture),
                 Elapsed = TimeSpan.FromMilliseconds(reader.GetDouble(2)),
                 Delta = reader.IsDBNull(3) ? null : TimeSpan.FromMilliseconds(reader.GetDouble(3)),
-                Channel = (ChannelId)reader.GetInt32(4),
-                Direction = (FrameDirection)reader.GetInt32(5),
-                Flags = (FrameFlags)reader.GetInt32(6),
+                Channel = channel,
+                Direction = direction,
+                Flags = flags,
                 Data = (byte[])reader["data"]
             };
         }
+
+        if (badChannel + badDirection + badFlags > 0)
+        {
+            _logger.LogWarning(
+                "Batch {BatchId} had frames with values outside the known enums " +
+                "(channel {BadChannel}, direction {BadDirection}, flags {BadFlags}; first at seq {FirstSeq}). " +
+                "They were read as the neutral member, so the export does not describe them correctly.",
+                batchId, badChannel, badDirection, badFlags, firstBadSeq);
+        }
     }
 
+    // Read a recorded batch summary.
     public async Task<RecordingBatchSummary?> GetBatchAsync(
         long batchId, CancellationToken cancellationToken = default)
     {
         await using var conn = new SqliteConnection($"Data Source={paths.RecordingDatabasePath}");
         await conn.OpenAsync(cancellationToken);
+        RecordingDatabase.CheckVersion(conn, paths.RecordingDatabasePath);
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -64,30 +86,19 @@ public sealed class SqliteRecordingReader(IAppPaths paths) : IRecordingReader
         await using var r = await cmd.ExecuteReaderAsync(cancellationToken);
         if (!await r.ReadAsync(cancellationToken)) return null;
 
-        // ⛔ P2-117: each port name is made file-name safe SEPARATELY, before the join.
-        //    Doing it afterwards cannot work -- "keep the last path segment" applied to the
-        //    joined "/dev/cu.A-/dev/cu.B" would swallow the first port whole.
-        // ⚠️ Same division of labour as SettingsLabel just below: the ENCODING lives in Core
-        //    so every call site agrees, and this layer only guarantees the resulting label
-        //    carries no path separators. The file NAME rule itself stays an App decision.
         var portA = SerialPortInfo.FileNameSegment(r.GetString(0));
         var portLabel = r.IsDBNull(1)
             ? portA
             : $"{portA}-{SerialPortInfo.FileNameSegment(r.GetString(1))}";
 
-        // ⚠️ **复用 SerialPortSettings.ShortDescription，不要另写一套缩写映射。**
-        // 初版在这里自己取首字母，于是 StopBits 的 "One" 变成了 'O' ——
-        // 默认文件名成了 diserial-COM1-9600-8NO-…（应为 8N1）。
-        // 那段映射在 SerialPortSettings 里本来就有、而且有测试守着。
         var settings = new SerialPortSettings
         {
             BaudRate = r.GetInt32(2),
             DataBits = r.GetInt32(3),
-            Parity = Enum.TryParse<SerialParity>(r.GetString(4), out var p) ? p : SerialParity.None,
-            StopBits = Enum.TryParse<SerialStopBits>(r.GetString(5), out var s) ? s : SerialStopBits.One
+            Parity = RecordingEnumText.ParseParity(r.GetString(4), _logger, batchId),
+            StopBits = RecordingEnumText.ParseStopBits(r.GetString(5), _logger, batchId)
         };
 
-        // 形如 9600-8N1。⚠️ 用连字符而不是空格 —— 这个串要进文件名。
         var settingsLabel = settings.ShortDescription.Replace(' ', '-');
 
         return new RecordingBatchSummary(
@@ -95,7 +106,6 @@ public sealed class SqliteRecordingReader(IAppPaths paths) : IRecordingReader
             portLabel,
             settingsLabel,
             DateTimeOffset.Parse(r.GetString(6), CultureInfo.InvariantCulture),
-            // 别名进导出文件的 Alias 列（P0-7 a）。批次记录的是**开始记录那一刻**的别名。
             r.IsDBNull(7) ? null : r.GetString(7),
             r.IsDBNull(8) ? null : r.GetString(8));
     }

@@ -6,31 +6,32 @@ using Microsoft.Extensions.Logging;
 
 namespace DiSerial.Infrastructure.Serial;
 
-/// <summary>
-/// 真实的串口枚举实现（C-02a）。
-///
-/// 两步：
-///   1. 端口名 —— <c>SerialPort.GetPortNames()</c>，跨平台可用
-///   2. 描述文本 —— 交给平台特定的 <see cref="IPortDetailProvider"/>
-///
-/// 第 2 步失败或未实现（macOS）时第 1 步仍然有效，功能不受影响，
-/// 只是列表里少一段说明文字。
-/// </summary>
+// List available serial ports.
 public sealed class SystemPortEnumerator : IPortEnumerator
 {
+    private readonly IPortNameSource _names;
     private readonly IPortDetailProvider _details;
 
-    /// <summary>
-    /// <paramref name="loggerFactory"/> 可为 null：只有平台实现需要它，
-    /// 用来记录「取描述失败」这类降级（01-spec 4.7 共有第 1 条）。
-    /// </summary>
+    // Initialize port providers.
     public SystemPortEnumerator(ILoggerFactory? loggerFactory = null)
-        => _details = CreateDetailProvider(loggerFactory);
+        : this(CreateNameSource(loggerFactory), loggerFactory)
+    {
+    }
 
+    // Initialize port providers.
+    internal SystemPortEnumerator(IPortNameSource names, ILoggerFactory? loggerFactory = null)
+    {
+        _names = names;
+        _details = CreateDetailProvider(loggerFactory);
+    }
+
+    internal IPortNameSource NameSource => _names;
+
+    // List available serial ports.
     public async Task<IReadOnlyList<SerialPortInfo>> GetPortsAsync(
         CancellationToken cancellationToken = default)
     {
-        var names = System.IO.Ports.SerialPort.GetPortNames();
+        var names = _names.GetPortNames();
         var descriptions = await _details.GetDescriptionsAsync(cancellationToken);
 
         return names
@@ -45,32 +46,9 @@ public sealed class SystemPortEnumerator : IPortEnumerator
             .ToArray();
     }
 
-    /// <summary>
-    /// ⛔ <b>P1-5.</b> Whether this run should hide macOS callin nodes. Split out from
-    /// <see cref="IsMacOsCallinNode"/> on purpose: the predicate is pure and therefore testable
-    /// on <b>both</b> machines, while only this flag depends on where we are running. Folding
-    /// the platform check into the predicate would leave the Windows machine unable to exercise
-    /// the filtering branch at all.
-    /// </summary>
     private static bool DropCallinNodes => OperatingSystem.IsMacOS();
 
-    /// <summary>
-    /// ⛔⭐ <b>P1-5.</b> True when <paramref name="portName"/> is a macOS <b>callin</b> device
-    /// node, which must never be offered to the user.
-    ///
-    /// <para><b>Why this exists.</b> Measured 2026-08-13 on a MacBook Air M4:
-    /// <c>SerialPort.GetPortNames()</c> returns <b>both</b> nodes for every device --
-    /// <c>/dev/cu.NAME</c> (callout) and <c>/dev/tty.NAME</c> (callin). Unfiltered, every
-    /// physical device appears twice in the port list with nothing to tell the two apart, and
-    /// <b>picking the tty one blocks inside open() waiting for a DCD carrier</b>. The user sees
-    /// the app hang on connect with no error and no way to guess why. See docs/04-platforms.md
-    /// 2.1 and 00-STATUS P1-5.</para>
-    ///
-    /// <para>⭐ <b>The dot is load-bearing.</b> This matches "tty." and not "tty", because
-    /// Linux's <c>ttyS0</c> / <c>ttyUSB0</c> / <c>ttyACM0</c> are real ports carrying no dot.
-    /// The predicate is thus correct on its own terms even though
-    /// <see cref="DropCallinNodes"/> currently only lets it run on macOS.</para>
-    /// </summary>
+    // Detect a macOS call-in node.
     public static bool IsMacOsCallinNode(string portName)
     {
         if (string.IsNullOrEmpty(portName)) return false;
@@ -80,10 +58,7 @@ public sealed class SystemPortEnumerator : IPortEnumerator
         return fileName.StartsWith("tty.", StringComparison.Ordinal);
     }
 
-    /// <summary>
-    /// 排序键：把端口名尾部的数字左补零，使 COM9 排在 COM10 之前。
-    /// 纯字典序会得到 COM1, COM10, COM2 这样的顺序，在端口较多时很难找。
-    /// </summary>
+    // Build a numeric sorting key.
     private static string NumericAwareKey(string portName)
     {
         var digitStart = portName.Length;
@@ -96,22 +71,23 @@ public sealed class SystemPortEnumerator : IPortEnumerator
         return $"{prefix}{digits.PadLeft(6, '0')}";
     }
 
+    // Create the port name provider.
+    private static IPortNameSource CreateNameSource(ILoggerFactory? loggerFactory)
+        => SelectNameSource(OperatingSystem.IsLinux(), loggerFactory);
+
+    // Choose the port name provider.
+    internal static IPortNameSource SelectNameSource(bool isLinux, ILoggerFactory? loggerFactory)
+        => isLinux
+            ? new LinuxPortNameSource(loggerFactory?.CreateLogger(nameof(LinuxPortNameSource)))
+            : new BclPortNameSource();
+
+    // Create the port detail provider.
     private static IPortDetailProvider CreateDetailProvider(ILoggerFactory? loggerFactory)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return new WindowsPortDetailProvider(
                 loggerFactory?.CreateLogger(nameof(WindowsPortDetailProvider)));
 
-        // Every other platform: port names only.
-        // Since device identification no longer depends on VID/PID, not implementing this
-        // costs no functionality -- macOS support therefore needs no IOKit interop.
-        //
-        // ⚠ There used to be a LinuxPortDetailProvider reading /sys; it was deleted on
-        // 2026-07-29 when Linux was dropped as a target. Its empty catch was the last
-        // place in the repository that could not pass
-        // SourceConventionTests.NoSilentlySwallowedExceptions.
-        // Recover it from git history if it is ever needed, and wire up a logger the way
-        // WindowsPortDetailProvider does.
         return new NullPortDetailProvider();
     }
 }

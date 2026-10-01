@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **diSerial** — DongGuan DESHIDE TECHNOLOGY CO.,LTD
-Last updated: 2026-08-18
+Last updated: 2026-10-01
 
 ## The short version
 
@@ -24,9 +24,14 @@ What lives there:
 
 | File | What it holds |
 |---|---|
-| `recordings.db` | The serial traffic you chose to record, and nothing else |
-| `settings.db`, `settings.json` | Your own preferences: window layout, port aliases, interface language |
+| `recordings.db` | Recorded serial traffic, terminal send history, saved shortcut commands and auto-answer rules |
+| `settings.db` | Your preferences, including port settings, port aliases and interface language |
 | `diserial-*.log` | Diagnostic logs, written locally so you can send them to us **if you choose to** |
+
+Terminal send history is saved automatically when you send a command. Monitor-session
+send history stays in memory and is cleared when the app closes. Shortcut commands and
+auto-answer rules are saved when you create or edit them; auto-answer starts disabled
+each time. A leftover `settings.json` from an old installation is not used for settings.
 
 Files you export go wherever you tell the export dialog to put them. The app never moves them
 anywhere else.

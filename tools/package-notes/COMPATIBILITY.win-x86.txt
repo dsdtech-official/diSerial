@@ -1,0 +1,47 @@
+diSerial -- which machines this package is for
+==============================================
+
+THIS IS THE x86 (32-bit) PACKAGE.
+
+Use this one on:
+
+  * 32-bit Windows -- runs natively. This is the only package that runs
+    on a 32-bit system.
+
+Do NOT use this one on:
+
+  * 64-bit Windows (Intel/AMD)
+    -> download the x64 package instead.
+
+    This one does run there, under WOW64, at full speed and with correct
+    display scaling -- so nothing looks wrong. The x64 package is simply
+    the native one for those machines.
+
+  * Windows on Arm (Snapdragon, Surface Pro X and similar)
+    -> download the arm64 package instead.
+
+    It will start and work here, but the entire interface is drawn about
+    20-33% too small on any display whose scaling is above 100% (a 150%
+    display, which is what most 4K laptops ship with, gets 67%). This is a
+    defect in the UI framework under Arm emulation, not a setting you got
+    wrong. The arm64 package does not have it and is faster besides.
+
+    If you cannot use the arm64 package for some reason, there is a
+    workaround that makes the size correct at the cost of slightly blurry
+    text: right-click diSerial.exe -> Properties -> Compatibility ->
+    "Change high DPI settings" -> tick "Override high DPI scaling
+    behaviour" -> choose "System".
+
+Not sure which machine you have? Settings -> System -> About, look at
+"System type". If it says "ARM-based processor", take the arm64 package.
+If it says "64-bit operating system", take the x64 package.
+
+System requirements (same for all packages):
+
+  * Windows 10 version 1607 or later. Windows 7, 8 and 8.1 are not
+    supported.
+  * Nothing to install. The package is self-contained -- no .NET runtime
+    is required.
+
+The whole folder belongs together. Copy all of it, then run
+diSerial.exe.

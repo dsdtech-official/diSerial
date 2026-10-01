@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <assembly fullname="diSerial">
+    <type fullname="DiSerial.App.Localization.LocalizedString" preserve="all" />
+
+    <type fullname="DiSerial.App.Views.MainWindow" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.ConfirmationDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.FrameDataDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.ExportDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.ShortcutNameDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.AutoAnswerRuleDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.MonitorConfigView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.NewSessionDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.RecordingManagerDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.OptionsDialog" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.SerialSettingsView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Dialogs.TerminalConfigView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Panels.LogPanelView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Panels.SendPanelView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Sessions.MonitorSessionView" preserve="all" />
+    <type fullname="DiSerial.App.Views.Sessions.TerminalSessionView" preserve="all" />
+  </assembly>
+</linker>

@@ -1,0 +1,160 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:loc="using:DiSerial.App.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+        x:Class="DiSerial.App.Views.Dialogs.RecordingManagerDialog"
+        x:DataType="dialogs:RecordingManagerViewModel"
+        Title="{loc:Translate Dialog.Recordings.Title}"
+        Width="1040" Height="560"
+        MinWidth="900" MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+
+  <Window.Styles>
+    <Style Selector="Grid.live">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
+    <Style Selector="ListBox.batches ListBoxItem" x:DataType="dialogs:RecordingBatchItemViewModel">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+      <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+      <Setter Property="IsEnabled" Value="{Binding !IsLive}" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel Margin="16" LastChildFill="True">
+
+    <Border DockPanel.Dock="Top" Padding="12,8" Margin="0,0,0,12" Background="#33D13438"
+            IsVisible="{Binding HasLoadError}">
+      <StackPanel>
+        <TextBlock Text="{loc:Translate Dialog.Recordings.LoadFailed}"
+                   FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" />
+        <TextBlock Classes="caption" Text="{Binding LoadError}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <WrapPanel DockPanel.Dock="Top" ItemSpacing="12" LineSpacing="8" Margin="0,0,0,12">
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <TextBlock Text="{loc:Translate Dialog.Recordings.From}" VerticalAlignment="Center" />
+        <CalendarDatePicker SelectedDate="{Binding From}" MinWidth="150"
+                            TextConverter="{Binding DateText}"
+                            PlaceholderText="{Binding DateHint}" />
+      </StackPanel>
+
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <TextBlock Text="{loc:Translate Dialog.Recordings.To}" VerticalAlignment="Center" />
+        <CalendarDatePicker SelectedDate="{Binding To}" MinWidth="150"
+                            TextConverter="{Binding DateText}"
+                            PlaceholderText="{Binding DateHint}" />
+      </StackPanel>
+
+      <Button Content="{loc:Translate Dialog.Recordings.Query}"
+              Command="{Binding RefreshCommand}" VerticalAlignment="Center" />
+    </WrapPanel>
+
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,Auto"
+          ColumnSpacing="8" Margin="0,12,0,0">
+      <Button Grid.Column="0" Content="{loc:Translate Dialog.Recordings.Delete}"
+              Command="{Binding DeleteCommand}" />
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0">
+        <Button Content="{loc:Translate Dialog.Recordings.Compact}"
+                Command="{Binding CompactCommand}" />
+        <TextBlock VerticalAlignment="Center"
+                   Text="{Binding DatabaseSizeText}"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        <TextBlock Text="{loc:Translate Dialog.Recordings.CompactWhileRecording}"
+                   VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="260"
+                   IsVisible="{Binding IsRecordingInProgress}"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+      </StackPanel>
+
+      <TextBlock Grid.Column="1" Text="{Binding SelectSeveralText}"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 TextWrapping="Wrap" MaxWidth="240" Margin="0,0,4,0"
+                 IsVisible="{Binding MoreRowsCanBeSelected}"
+                 Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+      <TextBlock Grid.Column="1" Text="{loc:Translate Dialog.Recordings.ExportOneAtATime}"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 TextWrapping="Wrap" MaxWidth="240" Margin="0,0,4,0"
+                 IsVisible="{Binding ExportTakesOneBatchAtATime}"
+                 Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+      <Button Grid.Column="2" Content="{loc:Translate Dialog.Recordings.Export}"
+              Command="{Binding ExportCommand}" />
+      <Button Grid.Column="3" Content="{loc:Translate Dialog.Recordings.Close}"
+              Command="{Binding CloseCommand}" IsCancel="True" />
+    </Grid>
+
+    <Border BorderThickness="1"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+      <DockPanel LastChildFill="True">
+
+        <Border DockPanel.Dock="Top" Padding="10,6"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+          <Grid Tag="batchColumns" ColumnDefinitions="10,110,*,110,150,90,80,170" ColumnSpacing="8">
+            <TextBlock Grid.Column="1" Text="{loc:Translate Dialog.Recordings.Column.Session}" />
+            <TextBlock Grid.Column="2" Text="{loc:Translate Dialog.NewSession.Port}" />
+            <TextBlock Grid.Column="3" Text="{loc:Translate Dialog.Recordings.Column.Settings}" />
+            <TextBlock Grid.Column="4" Text="{loc:Translate Dialog.Recordings.Column.Started}" />
+            <TextBlock Grid.Column="5" Text="{loc:Translate Dialog.Recordings.Column.Duration}" />
+            <TextBlock Grid.Column="6" Text="{loc:Translate Dialog.Recordings.Column.Frames}"
+                       TextAlignment="Right" />
+            <TextBlock Grid.Column="7" Text="{loc:Translate Dialog.Recordings.Column.State}" />
+          </Grid>
+        </Border>
+
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Translate Dialog.Recordings.Empty}"
+                   IsVisible="{Binding ShowsEmptyState}" Margin="0,20,0,0"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+        <ListBox Classes="batches" ItemsSource="{Binding Batches}"
+                 SelectionMode="Multiple"
+                 Background="Transparent" BorderThickness="0">
+          <ListBox.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="{loc:Translate Dialog.Recordings.Menu.Export}"
+                        Command="{Binding ExportCommand}" />
+              <MenuItem Header="{loc:Translate Dialog.Recordings.Menu.Delete}"
+                        Command="{Binding DeleteCommand}" />
+            </ContextMenu>
+          </ListBox.ContextMenu>
+          <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="dialogs:RecordingBatchItemViewModel">
+                <Grid Tag="batchColumns" ColumnDefinitions="10,110,*,110,150,90,80,170" ColumnSpacing="8"
+                      Margin="10,6" Background="Transparent"
+                      Classes.live="{Binding IsLive}"
+                      PointerPressed="OnRowPointerPressed">
+                  <TextBlock Grid.Column="1" Text="{Binding SessionText}" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="2" Classes="mono" Text="{Binding PortText}"
+                             VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="3" Classes="mono" Text="{Binding SettingsText}"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="4" Classes="mono" Text="{Binding StartedText}"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="5" Classes="mono" Text="{Binding DurationText}"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="6" Classes="mono" Text="{Binding FramesText}"
+                             TextAlignment="Right" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="7" Text="{Binding StateText}" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"
+                             Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+      </DockPanel>
+    </Border>
+
+  </DockPanel>
+</Window>

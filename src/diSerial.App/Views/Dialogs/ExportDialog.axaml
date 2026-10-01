@@ -43,7 +43,9 @@
     </Grid>
 
     <StackPanel Spacing="6">
-      <CheckBox Content="{loc:Translate Toolbar.ShowChannel}" IsChecked="{Binding IncludeChannelColumn}" />
+      <CheckBox Content="{loc:Translate Dialog.Export.PortAndAliasColumns}"
+                IsChecked="{Binding IncludeChannelColumn}"
+                IsVisible="{Binding HasChannelIdentity}" />
       <CheckBox Content="{loc:Translate Toolbar.ShowDelta}" IsChecked="{Binding IncludeDeltaColumn}" />
     </StackPanel>
 
@@ -52,8 +54,6 @@
     <StackPanel Spacing="6">
       <TextBlock Text="{loc:Translate Dialog.Export.SaveTo}" />
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <!-- ⚠️ 路径很长，必须限死宽度：只写 MinWidth + SizeToContent 时
-             TextBox 会按内容撑开，把整个对话框拉到主窗口那么宽（实测撞过）。 -->
         <TextBox Grid.Column="0" Text="{Binding FilePath}" TextWrapping="NoWrap" />
         <Button Grid.Column="1" Content="{loc:Translate Dialog.Export.Browse}"
                 Command="{Binding BrowseCommand}" />

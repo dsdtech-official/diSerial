@@ -1,45 +1,170 @@
+using CommunityToolkit.Mvvm.Input;
 using DiSerial.App.Localization;
+using DiSerial.App.Services;
 using DiSerial.Core.Abstractions;
+using DiSerial.App.ViewModels.Panels;
 using DiSerial.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DiSerial.App.ViewModels.Sessions;
 
-/// <summary>
-/// 单串口终端会话（V1.0 「够用即可」范围）。
-///
-/// V1.0 只做：打开端口、收发数据、本地回显、发送历史。
-/// 刻意不实现快捷发送宏、定时循环发送、ANSI 着色、信号线控制、VT100 仿真 ——
-/// 这些排期在 V1.1 / V1.2，届时软件才开始正面对标同类工具。
-/// </summary>
-public sealed class TerminalSessionViewModel : SessionViewModel
+// Manage a terminal session.
+public sealed partial class TerminalSessionViewModel : SessionViewModel
 {
+    // Initialize a terminal session.
     public TerminalSessionViewModel(
         SerialPortInfo port,
         SerialPortSettings settings,
         ICaptureSession capture,
         ISessionRecorder recorder,
         SessionContext context)
-        : base(capture, recorder, context)
+        : base(capture, recorder, context, context.Shortcuts)
     {
         Port = port;
         Settings = settings;
 
-        // Sending is always available on a terminal session. These are intrinsic to the
-        // session type, not user preferences, so they are not persisted -- putting them in
-        // the settings store would produce fields that look editable and do nothing.
-        // (The store is settings.db since 2026-08-07; it was settings.json before.)
         SendPanel.IsMonitorSession = false;
         SendPanel.IsSendEnabled = true;
 
-        // ⚠️ `SendPanel.TargetChannel = ChannelId.None` used to sit here. It is derived now
-        // (P1-33): with no entries in SendTargets nothing can be selected, and TargetChannel
-        // reads back None on its own. A terminal session has one port -- there is nothing to
-        // choose between, so the picker does not appear at all.
 
-        // 显示与发送偏好取上次记住的值（默认：相对时间戳、无通道列与增量列）。
-        // 必须放在最后 —— 早于上面那几行会被它们覆盖。
+        AutoAnswerPanel = new AutoAnswerPanelViewModel(
+            context.AutoAnswer, context.LoggerFactory.CreateLogger("AutoAnswer"));
+
+        AutoAnswerPanel.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(AutoAnswerPanelViewModel.Selected):
+                    DeleteAutoAnswerRuleCommand.NotifyCanExecuteChanged();
+                    break;
+                case nameof(AutoAnswerPanelViewModel.AnyEnabled):
+                    DisableAllAutoAnswerRulesCommand.NotifyCanExecuteChanged();
+                    break;
+                case nameof(AutoAnswerPanelViewModel.AnyDisabled):
+                    EnableAllAutoAnswerRulesCommand.NotifyCanExecuteChanged();
+                    break;
+            }
+        };
+
         ApplyStoredPreferences();
     }
+
+    public AutoAnswerPanelViewModel AutoAnswerPanel { get; }
+
+    // Handle newly displayed frames.
+    protected override void OnFramesAppended(
+        IReadOnlyList<(SerialFrame Frame, string? Alias)> batch)
+    {
+        foreach (var (frame, _) in batch)
+        {
+            if (AutoAnswerPanel.Answer(frame) is not { } answer) continue;
+
+            _ = AnswerAsync(answer);
+        }
+    }
+
+
+    // Create an automatic reply rule.
+    [RelayCommand]
+    private async Task AddAutoAnswerRule()
+    {
+        if (await Context.DialogService.ShowAutoAnswerRuleDialogAsync(null) is not { } draft) return;
+
+        var result = AutoAnswerPanel.Add(
+            draft.Name, draft.TriggerFormat, draft.TriggerText,
+            draft.ResponseFormat, draft.ResponseText, draft.Terminator);
+
+        if (result == AutoAnswerSaveResult.Full) ReportAutoAnswerFull();
+    }
+
+    // Edit an automatic reply rule.
+    [RelayCommand]
+    private async Task EditAutoAnswerRule()
+    {
+        if (AutoAnswerPanel.Selected is not { } row) return;
+        if (await Context.DialogService.ShowAutoAnswerRuleDialogAsync(row.Rule) is not { } draft) return;
+
+        AutoAnswerPanel.Update(
+            row.Id, draft.Name, draft.TriggerFormat, draft.TriggerText,
+            draft.ResponseFormat, draft.ResponseText, draft.Terminator);
+    }
+
+    // Delete an automatic reply rule.
+    [RelayCommand(CanExecute = nameof(HasAutoAnswerSelection))]
+    private void DeleteAutoAnswerRule()
+    {
+        if (AutoAnswerPanel.Selected is { } row) AutoAnswerPanel.Delete(row.Id);
+    }
+
+    private bool HasAutoAnswerSelection => AutoAnswerPanel.Selected is not null;
+
+    // Move a reply rule one place up.
+    [RelayCommand]
+    private void MoveAutoAnswerRuleUp()
+    {
+        if (AutoAnswerPanel.Selected is { } row) AutoAnswerPanel.MoveForwardOne(row.Id);
+    }
+
+    // Move a reply rule down one slot.
+    [RelayCommand]
+    private void MoveAutoAnswerRuleDown()
+    {
+        if (AutoAnswerPanel.Selected is { } row) AutoAnswerPanel.MoveBackOne(row.Id);
+    }
+
+    // Move a reply rule to the front.
+    [RelayCommand]
+    private void MoveAutoAnswerRuleToFront()
+    {
+        if (AutoAnswerPanel.Selected is { } row) AutoAnswerPanel.MoveToFront(row.Id);
+    }
+
+    // Reset the reply trigger count.
+    [RelayCommand]
+    private void ClearAutoAnswerCount()
+    {
+        if (AutoAnswerPanel.Selected is { } row) AutoAnswerPanel.ClearCount(row.Id);
+    }
+
+    // Disable automatic reply rules.
+    [RelayCommand(CanExecute = nameof(AnyAutoAnswerRuleEnabled))]
+    private void DisableAllAutoAnswerRules() => AutoAnswerPanel.DisableAll();
+
+    // Enable automatic reply rules.
+    [RelayCommand(CanExecute = nameof(AnyAutoAnswerRuleDisabled))]
+    private void EnableAllAutoAnswerRules() => AutoAnswerPanel.EnableAll();
+
+    private bool AnyAutoAnswerRuleEnabled => AutoAnswerPanel.AnyEnabled;
+
+    private bool AnyAutoAnswerRuleDisabled => AutoAnswerPanel.AnyDisabled;
+
+    // Report the reply rule limit.
+    private void ReportAutoAnswerFull() =>
+        Context.SessionLog?.Append(
+            DateTimeOffset.Now, LogLevel.Warning, "AutoAnswer",
+            Context.Localization[LocKeys.AutoAnswerErrorFull]);
+
+    // Send a matched automatic reply.
+    private async Task AnswerAsync(ArmedRule rule)
+    {
+        var outcome = await WriteToTheWireAsync(
+            SendPanel.TargetChannel, rule.Response, asAutoAnswer: true);
+
+        Context.SessionLog?.Append(
+            DateTimeOffset.Now,
+            outcome == WireWriteOutcome.Sent ? LogLevel.Information : LogLevel.Warning,
+            "AutoAnswer",
+            outcome switch
+            {
+                WireWriteOutcome.Sent => $"{Named(rule)}sent {rule.Response.Length} bytes",
+                WireWriteOutcome.NotConnected => $"{Named(rule)}matched, but the port is not open",
+                _ => $"{Named(rule)}matched, but the write failed"
+            });
+    }
+
+    // Build a named setting.
+    private static string Named(ArmedRule rule) =>
+        string.IsNullOrWhiteSpace(rule.Name) ? string.Empty : rule.Name + ": ";
 
     public SerialPortInfo Port { get; }
 
@@ -47,24 +172,11 @@ public sealed class TerminalSessionViewModel : SessionViewModel
 
     public override SessionKind Kind => SessionKind.Terminal;
 
-    /// <summary>终端只有一个端口，通道 B 与两个别名均为 null。</summary>
+    // Describe the recorded batch.
     protected override RecordingBatchInfo DescribeRecordingBatch() =>
         new(SessionKind.Terminal, Port.PortName, null, null, null, Settings);
 
-    /// <summary>
-    /// Carries the port and the serial parameters, matching the "stop recording" export
-    /// path (P0-7 b).
-    ///
-    /// <para>⚠️ Two different things have to be made file-name safe here, and neither is
-    /// automatic: <c>ShortDescription</c> contains a SPACE, and the port name may contain
-    /// PATH SEPARATORS.</para>
-    ///
-    /// <para>⛔ <b>P2-117.</b> This comment used to name only the space. That was not an
-    /// oversight about a rare case -- on Windows a port name really is safe here, so the
-    /// missing half was invisible until the same code ran on macOS, where
-    /// <c>/dev/cu.usbserial-A1</c> turned the file name into a path and the export silently
-    /// created directories. <see cref="SerialPortInfo.FileNameSegment"/> is the shared fix.</para>
-    /// </summary>
+    // Build the export base name.
     protected override string DescribeExportBaseName(string kind) =>
         $"diserial-{SerialPortInfo.FileNameSegment(Port.PortName)}" +
         $"-{Settings.ShortDescription.Replace(' ', '-')}" +
@@ -79,4 +191,17 @@ public sealed class TerminalSessionViewModel : SessionViewModel
         DescribeState(),
         LogPanel.FrameCount,
         LogPanel.ByteCount);
+
+    public double PanelHeight
+    {
+        get => Context.Settings.Options.PanelHeight;
+        set
+        {
+            var clamped = AppOptions.ClampPanelHeight((int)Math.Round(value));
+            if (clamped == Context.Settings.Options.PanelHeight) return;
+
+            Context.Settings.Options = Context.Settings.Options with { PanelHeight = clamped };
+            OnPropertyChanged();
+        }
+    }
 }

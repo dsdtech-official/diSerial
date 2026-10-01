@@ -5,9 +5,18 @@ diSerial
 Copyright (c) 2026 DongGuan DESHIDE TECHNOLOGY CO.,LTD
 Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-diSerial ships as a self-contained, single-file Windows executable. That file
+This notice accompanies the three Windows packages (win-x86, win-x64 and
+win-arm64). Each of them is a self-contained, single-file executable that
 bundles the .NET runtime and the third-party components listed below. This
 notice lists those components and reproduces the licenses that require it.
+
+The macOS packages do NOT use this file. Their component sets differ, so each
+packaging form carries its own notice, and inside every package the file is
+named THIRD-PARTY-NOTICES regardless:
+
+  Windows (3 packages)   -> THIRD-PARTY-NOTICES        (this file)
+  macOS download         -> THIRD-PARTY-NOTICES.macos
+  Mac App Store build    -> THIRD-PARTY-NOTICES.mas
 
 HOW THIS LIST WAS PRODUCED
 --------------------------

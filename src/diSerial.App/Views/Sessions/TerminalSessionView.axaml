@@ -2,6 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sessions="using:DiSerial.App.ViewModels.Sessions"
              xmlns:views="using:DiSerial.App.Views.Panels"
+             xmlns:controls="using:DiSerial.App.Controls"
+             xmlns:panels="using:DiSerial.App.ViewModels.Panels"
+             xmlns:icons="using:DiSerial.App.Views"
              xmlns:loc="using:DiSerial.App.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -9,49 +12,70 @@
              x:Class="DiSerial.App.Views.Sessions.TerminalSessionView"
              x:DataType="sessions:TerminalSessionViewModel">
 
-  <!--
-    单串口终端会话（V1.0「够用即可」范围）。
-    工具栏放在会话内部而非主窗口，使不同会话类型各自拥有自己的工具栏，
-    主窗口无需任何条件判断逻辑。
-  -->
+
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="TabItemHeaderSelectedPipeFill" Color="Transparent" />
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="#EFEFEF" />
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="Transparent" />
+
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="#EFEFEF" />
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="#EFEFEF" />
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="#14000000" />
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="ListBox.autoAnswer ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+    </Style>
+  </UserControl.Styles>
 
   <DockPanel>
 
-    <!--
-      工具栏只放**动作**，显示设置收进一个浮出面板（2026-08-02 重排）。
-
-      ⚠️ Why: measured on 2026-08-02, the old eleven-control toolbar needed ~1100 logical px
-      in English while the window's MinWidth is 820 — at that width all three checkboxes and
-      half the timestamp dropdown were simply clipped, with no alternative entry point
-      (P1-43). But the count was only half the problem: six of the eleven were actions and
-      five were display settings, so finding "Pause" meant scanning past five controls a user
-      touches once. Splitting by kind is what actually makes it readable; six actions plus one
-      button measure ~580 px and fit with room to spare.
-
-      ⚠️ WrapPanel stays as a backstop even though the content now fits — it costs one
-      attribute and covers what was not measured: longer languages (German runs 30–40% past
-      English), user font scaling, and the next button someone adds.
-    -->
     <Border DockPanel.Dock="Top" Classes="toolbar">
       <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6">
-        <Button Content="{loc:Translate Toolbar.Connect}" Command="{Binding ConnectCommand}" />
-        <Button Content="{loc:Translate Toolbar.Disconnect}" Command="{Binding DisconnectCommand}" />
+        <Button Command="{Binding ToggleConnectionCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon" Classes.iconGo="{Binding !IsConnected}"
+                  Classes.iconStop="{Binding IsConnected}"
+                  Data="{Binding ConnectionButtonIcon}" />
+            <TextBlock Text="{Binding ConnectionButtonText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
-        <Button Content="{loc:Translate Toolbar.Clear}" Command="{Binding ClearCommand}" />
-        <!-- P1-40: the label swaps to "Resume" while paused. Bound, not {loc:Translate},
-             because it is computed at runtime — this button is the only way back. -->
-        <Button Content="{Binding PauseButtonText}" Command="{Binding TogglePauseCommand}" />
-        <Button Content="{Binding RecordButtonText}" Command="{Binding ToggleRecordCommand}" />
-        <Button Content="{loc:Translate Toolbar.Export}" Command="{Binding ExportCommand}" />
+        <Button Command="{Binding ClearCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon iconClear" Data="{x:Static icons:ToolbarIcons.Clear}" />
+            <TextBlock Text="{loc:Translate Toolbar.Clear}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding TogglePauseCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon iconPause" Data="{Binding PauseButtonIcon}" />
+            <TextBlock Text="{Binding PauseButtonText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding ToggleRecordCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon" Classes.iconStop="{Binding IsRecording}"
+                  Data="{Binding RecordButtonIcon}" />
+            <TextBlock Text="{Binding RecordButtonText}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding ExportCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon iconExport" Data="{x:Static icons:ToolbarIcons.Export}" />
+            <TextBlock Text="{loc:Translate Toolbar.Export}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
         <Rectangle Width="1" Fill="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="4,2" />
-
-        <!--
-          ⚠️ 这些设置**只在这里有入口** —— 视图菜单里的对应条目是 IsEnabled="False" 灰占位
-          （01-spec 6.0）。所以收进浮出面板时不能顺手把哪一项漏掉：漏掉 = 用户彻底够不着。
-          四项与改动前逐一对应：显示格式 · 时间戳 · 通道列 · Δms 列。
-          ⚠️ 第五项「显示发送数据」不在这里 —— 它移进了发送区第一行（T-05 藏的是行不是列）。
-        -->
-        <Button Content="{loc:Translate Toolbar.DisplaySettings}">
+        <Button>
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Path Classes="toolbarIcon" Data="{x:Static icons:ToolbarIcons.DisplaySettings}" />
+            <TextBlock Text="{loc:Translate Toolbar.DisplaySettings}" VerticalAlignment="Center" />
+          </StackPanel>
           <Button.Flyout>
             <Flyout Placement="BottomEdgeAlignedLeft">
               <StackPanel Spacing="10" Margin="4" MinWidth="220">
@@ -73,14 +97,6 @@
                             DisplayMemberBinding="{Binding DisplayName}" />
                 </StackPanel>
 
-                <!-- 列显隐（C-27 记住）。
-                     ⚠️ 在这两个勾选框出现之前，ShowChannelColumn / ShowDeltaColumn
-                     全项目只有 IsVisible 绑定、没有一处写它们 —— 于是 01-spec 8.3 承诺的
-                     方向标记（终端是 ← RX / → TX）用户永远看不到也关不掉，
-                     只能手改 %AppData%\diSerial\settings.json。
-                     持久化不需要额外代码：SessionViewModel.OnPreferenceChanged 早就在监听这两个属性。
-                     🔒 PreferenceWriteBindingTests 守着「每个持久化偏好至少有一处写绑定」——
-                     移进 Flyout 之后仍在同一个 .axaml 里，护栏照常看得见。 -->
                 <CheckBox Content="{loc:Translate Toolbar.ShowChannel}"
                           IsChecked="{Binding LogPanel.ShowChannelColumn}" />
                 <CheckBox Content="{loc:Translate Toolbar.ShowDelta}"
@@ -92,9 +108,318 @@
       </WrapPanel>
     </Border>
 
-    <!-- ⚠️ No DataContext override since 2026-08-02: SendPanelView binds at the SESSION level
-         so it can reach both SendPanel.X and LogPanel.X (the "show sent data" checkbox moved
-         into its first row). See that file's header. -->
+    <TabControl DockPanel.Dock="Bottom" Classes="panels" TabStripPlacement="Bottom"
+                Height="{Binding PanelHeight}">
+
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="#D67800"
+                     IsVisible="{Binding SendPanel.IsTimedSendRunning}"
+                     ToolTip.Tip="{loc:Translate Send.TimedSendRunning}" />
+            <TextBlock Text="{loc:Translate Send.TimedSend}" />
+          </StackPanel>
+        </TabItem.Header>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto">
+        <WrapPanel Orientation="Horizontal" ItemSpacing="6" LineSpacing="6" Margin="12,16,12,10"
+                   VerticalAlignment="Top">
+          <TextBlock Text="{loc:Translate Send.Interval}" VerticalAlignment="Center"
+                     FontSize="12" Margin="0,0,6,0" />
+          <NumericUpDown Width="130" VerticalAlignment="Center"
+                         Minimum="0" Maximum="3600000" Increment="100"
+                         FormatString="0"
+                         IsEnabled="{Binding SendPanel.CanEditSendContent}"
+                         Value="{Binding SendPanel.IntervalMs}" />
+          <TextBlock Text="{loc:Translate Send.IntervalUnit}" VerticalAlignment="Center"
+                     FontSize="12" Margin="6,0,10,0" />
+
+          <Button Content="{loc:Translate Send.TimedStart}"
+                  IsVisible="{Binding !SendPanel.IsTimedSendRunning}"
+                  Command="{Binding SendPanel.StartTimedSendCommand}" />
+          <Button Content="{loc:Translate Send.TimedStop}"
+                  IsVisible="{Binding SendPanel.IsTimedSendRunning}"
+                  Command="{Binding SendPanel.StopTimedSendFromUiCommand}" />
+        </WrapPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate Signal.Panel}"
+               DataContext="{Binding SignalPanel}"
+               IsVisible="{Binding Converter={x:Static ObjectConverters.IsNotNull}}">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="12,16,12,10">
+
+          <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                     FontSize="12" Opacity="0.7" Margin="0,0,14,6"
+                     Text="{loc:Translate Signal.Outputs}" />
+          <WrapPanel Grid.Row="0" Grid.Column="1" ItemSpacing="18" LineSpacing="6" Margin="0,0,0,6">
+            <CheckBox Content="{loc:Translate Signal.Dtr}" IsChecked="{Binding DtrAsserted}" />
+
+            <CheckBox Content="{loc:Translate Signal.Rts}"
+                      IsChecked="{Binding RtsAsserted}"
+                      IsEnabled="{Binding !IsRtsOwnedByFlowControl}" />
+            <TextBlock VerticalAlignment="Center" FontSize="11" Opacity="0.55"
+                       IsVisible="{Binding IsRtsOwnedByFlowControl}"
+                       Text="{loc:Translate Signal.RtsOwnedByFlowControl}" />
+          </WrapPanel>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                     FontSize="12" Opacity="0.7" Margin="0,0,14,0"
+                     Text="{loc:Translate Signal.Inputs}" />
+          <WrapPanel Grid.Row="1" Grid.Column="1" ItemSpacing="18" LineSpacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                       Fill="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                       Stroke="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                       StrokeDashArray="{Binding Cts, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+              <TextBlock Text="{loc:Translate Signal.Cts}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding CtsText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                       Fill="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                       Stroke="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                       StrokeDashArray="{Binding Dsr, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+              <TextBlock Text="{loc:Translate Signal.Dsr}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DsrText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="11" Height="11" VerticalAlignment="Center" StrokeThickness="1"
+                       Fill="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Fill}"
+                       Stroke="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Stroke}"
+                       StrokeDashArray="{Binding Dcd, Converter={StaticResource ControlLine}, ConverterParameter=Dash}" />
+              <TextBlock Text="{loc:Translate Signal.Dcd}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding DcdText}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+            </StackPanel>
+          </WrapPanel>
+        </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate SessionLog.Tab}">
+        <DockPanel DataContext="{Binding SessionLog}" Margin="12,10,12,8">
+
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="130,*">
+            <TextBlock Grid.Column="0" Classes="caption" Text="{loc:Translate Log.Column.Time}" />
+            <TextBlock Grid.Column="1" Classes="caption"
+                       Text="{loc:Translate SessionLog.Column.Event}" />
+          </Grid>
+          <Border DockPanel.Dock="Top" Height="1" Margin="0,4,0,4"
+                  Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+          <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="0,0,0,4"
+                     IsVisible="{Binding HasDropped}" Text="{Binding DroppedNotice}" />
+
+          <TextBlock DockPanel.Dock="Top" Classes="caption" Opacity="0.7"
+                     IsVisible="{Binding IsEmpty}" Text="{loc:Translate SessionLog.Empty}" />
+
+          <controls:AutoScrollViewer HorizontalScrollBarVisibility="Auto"
+                                     IsFollowing="{Binding AutoScroll, Mode=TwoWay}">
+            <ItemsControl ItemsSource="{Binding Entries}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="panels:SessionLogRowViewModel">
+                  <Grid ColumnDefinitions="130,*">
+                    <TextBlock Grid.Column="0" Classes="mono" Opacity="0.7"
+                               VerticalAlignment="Top" Text="{Binding Time}" />
+                    <TextBlock Grid.Column="1" TextWrapping="Wrap" Text="{Binding Message}"
+                               Classes.warn="{Binding IsWarning}"
+                               Classes.err="{Binding IsError}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </controls:AutoScrollViewer>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate Shortcut.Tab}" IsSelected="True">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto">
+        <Panel DataContext="{Binding SendPanel}" Margin="12,10">
+
+          <TextBlock Classes="caption" Opacity="0.7" TextWrapping="Wrap"
+                     VerticalAlignment="Top" MaxWidth="420" HorizontalAlignment="Left"
+                     IsVisible="{Binding !HasShortcuts}"
+                     Text="{loc:Translate Shortcut.Empty}" />
+
+          <ItemsControl ItemsSource="{Binding Shortcuts}" IsVisible="{Binding HasShortcuts}"
+                        VerticalAlignment="Top">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" ItemSpacing="15" LineSpacing="15" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="panels:ShortcutItemViewModel">
+                <SplitButton Content="{Binding Name}"
+                             ToolTip.Tip="{Binding Tooltip}"
+                             MinWidth="120" MaxWidth="260"
+                             HorizontalContentAlignment="Left"
+                             Command="{Binding SendCommand}">
+                  <SplitButton.Flyout>
+                    <MenuFlyout>
+                      <MenuItem Header="{loc:Translate Shortcut.Menu.Rename}"
+                                Command="{Binding RenameCommand}" />
+                      <MenuItem Header="{loc:Translate Shortcut.Menu.MoveFirst}"
+                                Command="{Binding MoveToFrontCommand}" />
+                      <MenuItem Header="{loc:Translate Shortcut.Menu.MoveForward}"
+                                Command="{Binding MoveForwardCommand}" />
+                      <Separator />
+                      <MenuItem Header="{loc:Translate Shortcut.Menu.Delete}"
+                                Command="{Binding DeleteCommand}" />
+                    </MenuFlyout>
+                  </SplitButton.Flyout>
+                </SplitButton>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Panel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="{loc:Translate AutoAnswer.Tab}">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto">
+        <DockPanel Margin="12,10">
+
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8"
+                      Margin="0,0,0,8">
+            <Button Content="{loc:Translate AutoAnswer.Add}"
+                    Command="{Binding AddAutoAnswerRuleCommand}" />
+            <Button Content="{loc:Translate AutoAnswer.Menu.Delete}"
+                    Command="{Binding DeleteAutoAnswerRuleCommand}" />
+
+            <Border Width="1" Margin="4,2" VerticalAlignment="Stretch"
+                    Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+            <Button Content="{loc:Translate AutoAnswer.Menu.DisableAll}"
+                    Command="{Binding DisableAllAutoAnswerRulesCommand}" />
+            <Button Content="{loc:Translate AutoAnswer.EnableAll}"
+                    Command="{Binding EnableAllAutoAnswerRulesCommand}" />
+
+            <Button Content="{loc:Translate AutoAnswer.Help}" Width="32">
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel MaxWidth="360" Spacing="8" Margin="4">
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{loc:Translate AutoAnswer.Help.Matching}" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="{loc:Translate AutoAnswer.Help.Enabling}" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+          </StackPanel>
+
+
+          <TextBlock DockPanel.Dock="Top" Classes="caption" Opacity="0.7"
+                     IsVisible="{Binding !AutoAnswerPanel.HasRules}"
+                     Text="{loc:Translate AutoAnswer.Empty}" />
+
+          <Border BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                  IsVisible="{Binding AutoAnswerPanel.HasRules}">
+            <DockPanel>
+            <Border DockPanel.Dock="Top"
+                    Padding="0,6"
+                    BorderThickness="0,0,0,1"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+              <Grid Tag="autoAnswerColumns" ColumnDefinitions="52,110,64,*,*,92,92" MinWidth="758">
+              <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Enabled}" />
+              </Border>
+              <Border Grid.Column="1" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Name}" />
+              </Border>
+              <Border Grid.Column="2" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Format}" />
+              </Border>
+              <Border Grid.Column="3" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Trigger}" />
+              </Border>
+              <Border Grid.Column="4" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Response}" />
+              </Border>
+              <Border Grid.Column="5" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0"
+                           Text="{loc:Translate AutoAnswer.Column.Terminator}" />
+              </Border>
+              <Border Grid.Column="6" BorderThickness="0" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                <TextBlock Margin="10,0,8,0" TextAlignment="Right"
+                           Text="{loc:Translate AutoAnswer.Column.Count}" />
+              </Border>
+              </Grid>
+            </Border>
+          <ListBox Classes="autoAnswer"
+                   ItemsSource="{Binding AutoAnswerPanel.Rules}"
+                   SelectedItem="{Binding AutoAnswerPanel.Selected}"
+                   IsVisible="{Binding AutoAnswerPanel.HasRules}">
+
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+
+            <ListBox.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.Edit}"
+                          Command="{Binding EditAutoAnswerRuleCommand}" />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.Delete}"
+                          Command="{Binding DeleteAutoAnswerRuleCommand}" />
+                <Separator />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.MoveUp}"
+                          Command="{Binding MoveAutoAnswerRuleUpCommand}" />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.MoveDown}"
+                          Command="{Binding MoveAutoAnswerRuleDownCommand}" />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.MoveFirst}"
+                          Command="{Binding MoveAutoAnswerRuleToFrontCommand}" />
+                <Separator />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.ClearCount}"
+                          Command="{Binding ClearAutoAnswerCountCommand}" />
+                <MenuItem Header="{loc:Translate AutoAnswer.Menu.DisableAll}"
+                          Command="{Binding DisableAllAutoAnswerRulesCommand}" />
+              </ContextMenu>
+            </ListBox.ContextMenu>
+
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="panels:AutoAnswerRowViewModel">
+                <Grid Tag="autoAnswerColumns" ColumnDefinitions="52,110,64,*,*,92,92" MinWidth="758">
+                  <CheckBox Grid.Column="0" Margin="10,0,8,0" IsChecked="{Binding IsEnabled}"
+                            MinWidth="0" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Margin="10,0,8,0" Text="{Binding Display}"
+                             VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="2" Margin="10,0,8,0" Text="{Binding TriggerFormat}"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="3" Margin="10,0,8,0" Text="{Binding TriggerText}"
+                             VerticalAlignment="Center"
+                             Classes="mono" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="4" Margin="10,0,8,0" Text="{Binding ResponseText}"
+                             VerticalAlignment="Center"
+                             Classes="mono" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="5" Margin="10,0,8,0" Text="{Binding Terminator}"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="6" Margin="10,0,8,0" Text="{Binding TriggeredCount}"
+                             VerticalAlignment="Center" TextAlignment="Right" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+            </DockPanel>
+          </Border>
+        </DockPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <Thumb DockPanel.Dock="Bottom" Classes="panelSplitter" Height="6"
+           Cursor="SizeNorthSouth" DragDelta="OnPanelSplitterDrag" />
+
     <views:SendPanelView x:Name="SendPanel" DockPanel.Dock="Bottom" />
 
     <views:LogPanelView DataContext="{Binding LogPanel}" />

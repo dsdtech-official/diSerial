@@ -81,8 +81,8 @@ logLevel:   trace     in diserial.dev.json
 debugMode:  true      in diserial.dev.json
 ```
 
-All three default to off in a release build, and the third one cannot be enabled by
-accident: when it is on, the window title permanently reads `⚠ DEVELOPER MODE — SIMULATED
+The shipped values are `logPayload=false`, `logLevel=info` and `debugMode=false`.
+Payload logging requires all three gates to be satisfied. Developer form is visible: when it is on, the window title permanently reads `⚠ DEVELOPER MODE — SIMULATED
 DATA`, so a machine in that state is visible at a glance and in any screenshot.
 
 The reason for the third gate is specific: serial payloads are **your** production data,
@@ -106,7 +106,7 @@ Everything the application writes lives in **one** directory:
 |---|---|
 | Settings | `settings.db` (a local SQLite file) |
 | Logs | `logs\` |
-| Recordings, and the terminal send history | `recordings.db` (a local SQLite file) |
+| Recordings, the terminal send history, saved shortcuts, and auto-answer rules | `recordings.db` (a local SQLite file) |
 | Exports | Only where you choose, when you ask to export |
 
 There is nowhere else: the location is fixed in one class (`AppPaths`), the same code on both
@@ -130,10 +130,15 @@ counts. It does not record frame contents unless all three gates above are open.
 
 ---
 
-## 5. Confirming the binary matches this source
+## 5. Reviewing the public source and released binaries
 
-The released executable is built by [`tools/publish.ps1`](tools/publish.ps1), which is
-published here as well. Build it yourself and compare behaviour:
+The public source includes [`tools/publish.ps1`](tools/publish.ps1), the packaging script.
+You can build from this snapshot and compare behaviour. The v1.1.0 Windows downloads were
+rebuilt from the cleaned application source and build inputs prepared for this public release.
+The retained macOS download was built on a separate Mac from a different source revision;
+it was not rebuilt from this public source snapshot. Some comments, diagnostic text and
+developer notes differ from its build inputs. Build environment and signing can also change
+binary bytes, so a local rebuild need not be byte-for-byte identical to either download.
 
 ```powershell
 tools\publish.ps1                             # Windows: all three Windows packages
@@ -146,12 +151,16 @@ pwsh -File tools/publish.ps1 -Rid osx-arm64   # macOS
 > On macOS the bundle you build is **unsigned** — signing and notarization need an Apple developer
 > certificate and are not part of this script. The published macOS download is the signed one.
 
-The startup banner in the log records the exact version, including the commit the build
-came from, so you can tell which source a given installation corresponds to.
+The startup banner records the full informational version. For v1.1.0, the Windows suffix
+identifies the frozen source tree used for its builds; that tree ID is not a public commit ID.
+The macOS suffix identifies a separate Mac build and does not establish source identity with
+this repository. Use the release notes for the exact package hashes and build provenance, and
+the public version tag for the released source snapshot. A local build can have a different
+suffix; a source archive without Git history can produce a version without one.
 
-> Note on scope: this repository contains the application source of released versions. The
-> automated test suite and our internal design documents are not published, so the source
-> here is what the product is built from, not the whole engineering repository.
+> Note on scope: this repository contains public application source snapshots. The automated
+> test suite and internal design documents are not published. For v1.1.0, the public snapshot
+> differs from the retained macOS build inputs as described above.
 
 ---
 
@@ -162,8 +171,7 @@ it is therefore not a policy we remember — it is checked automatically, and th
 when a check does.
 
 The test suite itself is not published (see the note in section 5), so here is what it
-guards. **As of 2026-08-17 the suite is 1,042 cases**, of which these are the ones relevant to
-this page:
+guards. The relevant checks include:
 
 | What is guarded | Why it needs a machine, not a habit |
 |---|---|
@@ -180,7 +188,7 @@ Two properties of these checks matter more than their number:
 - **They fail the build, not a report.** A broken guarantee stops the release; it does not
   produce a warning somebody has to notice.
 - ⭐ **The scanners check themselves.** Any check that works by reading source text can fail
-  in the worst possible way — by reading nothing and passing. **30 cases exist purely to
+  in the worst possible way — by reading nothing and passing. **Dedicated cases
   prove the scanners are not blind**: each plants a violation it must catch, so a scanner
   that has stopped seeing its input turns red instead of green.
 - ⭐ **And one check watches those.** A scanner shipped with a weak self-check is the same
@@ -188,9 +196,8 @@ Two properties of these checks matter more than their number:
   it has been reviewed against the known ways they fail. It enforces *that someone looked*,
   not *that they judged correctly* — which is the part a machine can actually hold.
 
-> Counts on this page describe the release they ship with; they move as the product does. The
-> startup banner records the exact commit a given installation was built from (section 5), so
-> you can always tell which source this page belongs to.
+> Release notes record the official package versions and their relationship to the public
+> source tag. The startup banner identifies the build installed on your machine (section 5).
 
 ---
 

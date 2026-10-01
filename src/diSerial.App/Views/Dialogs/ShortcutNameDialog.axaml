@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:DiSerial.App.ViewModels.Dialogs"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="360" d:DesignHeight="200"
+        x:Class="DiSerial.App.Views.Dialogs.ShortcutNameDialog"
+        x:DataType="dialogs:ShortcutNameDialogViewModel"
+        Title="{Binding Title}"
+        MinWidth="340" MaxWidth="440" SizeToContent="WidthAndHeight"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="20" Spacing="14">
+    <TextBlock Text="{Binding Title}" FontSize="16" />
+
+    <StackPanel Spacing="6">
+      <TextBlock Text="{Binding Label}" Opacity="0.85" />
+
+      <TextBox Name="NameBox"
+               Text="{Binding Name}"
+               MaxLength="{Binding MaxNameLength}" />
+
+      <TextBlock Text="{Binding Hint}" FontSize="12" Opacity="0.65"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding !HasError}" />
+      <TextBlock Text="{Binding Error}" FontSize="12"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                 IsVisible="{Binding HasError}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{Binding CancelText}" Command="{Binding CancelCommand}" />
+      <Button Content="{Binding ConfirmText}" IsDefault="True" Command="{Binding ConfirmCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>
