@@ -11,6 +11,17 @@
 | **Platform** | **Standalone downloads:** Windows 10 version 1607 or later and macOS 12 or later on Apple Silicon. **Four builds:** `win-x86` (32-bit), `win-x64` (64-bit Intel/AMD), `win-arm64` (Windows on Arm) and `osx-arm64`. Each package carries a `COMPATIBILITY.txt`. **Microsoft Store:** Windows 10 version 1809 or later; Windows selects the architecture. No Intel Mac or Linux package is published. macOS 12 is the declared minimum; it has not been tested on that version |
 | **License** | Apache-2.0 — see [LICENSE](LICENSE), [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) (Windows) and [THIRD-PARTY-NOTICES.macos](THIRD-PARTY-NOTICES.macos) (macOS) |
 
+## Download diSerial
+
+| Option | Download |
+|---|---|
+| Windows — Microsoft Store | [Get diSerial from Microsoft Store](https://apps.microsoft.com/detail/9PLJCLPGNZCW) |
+| macOS — Mac App Store (Apple Silicon) | [Get diSerial from Mac App Store](https://apps.apple.com/app/id6802570917) |
+| Windows or macOS — standalone ZIP | [Download v1.1.0](https://github.com/dsdtech-official/diSerial/releases/tag/v1.1.0) · [Latest release](https://github.com/dsdtech-official/diSerial/releases/latest) |
+
+For a standalone download, open **Assets** on the release page and choose the ZIP for your
+machine. Package choices, installation notes and SHA-256 verification are below.
+
 > **About this repository:** it holds public source snapshots for released versions of diSerial.
 > The v1.1.0 Windows downloads were rebuilt from the cleaned application source and build
 > inputs prepared for this public release. The retained macOS download was built on a separate
@@ -70,9 +81,8 @@ Recordings, settings and logs stay on your computer, and export files go to the 
 choose. The application has no network code, telemetry, analytics, crash uploads or built-in
 update checks.
 
-## Downloads
+## Standalone package details
 
-Download packages from [GitHub Releases](https://github.com/dsdtech-official/diSerial/releases).
 There are **four** package types, all self-contained — there is no .NET runtime to install:
 
 | Package | For |
