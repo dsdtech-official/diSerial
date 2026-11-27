@@ -18,7 +18,7 @@
 | Windows — Microsoft Store | [Get diSerial from Microsoft Store](https://apps.microsoft.com/detail/9PLJCLPGNZCW) |
 | macOS — Mac App Store (Apple Silicon) | [Get diSerial from Mac App Store](https://apps.apple.com/app/id6802570917) |
 | Windows or macOS — standalone ZIP | [Download v1.1.0](https://github.com/dsdtech-official/diSerial/releases/tag/v1.1.0) · [Latest release](https://github.com/dsdtech-official/diSerial/releases/latest) |
-| Android | [diSerial for Android](https://dsdtech-official.github.io/diSerial-android/) |
+| Android | [diSerial for Android](https://github.com/dsdtech-official/diSerial-android/blob/main/README.md) |
 
 For a standalone download, open **Assets** on the release page and choose the ZIP for your
 machine. Package choices, installation notes and SHA-256 verification are below.
